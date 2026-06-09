@@ -9,8 +9,8 @@
 </svelte:head>
 
 <nav>
-	<a href="/Energy-Hub/">home</a>
-	<a href="/Energy-Hub/about">about</a>
+	<a href="/">home</a>
+	<a href="/about">about</a>
 </nav>
 
 {@render children()}
