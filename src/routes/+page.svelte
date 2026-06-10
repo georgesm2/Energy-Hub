@@ -1,80 +1,210 @@
-<h1>Welcome to Energy Hub</h1>
-<p>This project intends to bring all information on UK energy to one place</p>
+<script>
+  import LineChart from './LineChart.svelte';
 
-<p>Time: {data.now}</p>
-<p>Price: £{data.price[0].price} / MWh (at {data.price[0].startTime.substring(11,16)})</p>
+  let { data } = $props();
 
-<div class="wrapper" bind:clientWidth={width}>
-  {#if data && width && xScale && yScale && lineGenerator}
-    <svg {width} {height}>
-      <AxisBottom
-        {width}
-        {height}
-        {margin}
-        tick_number={width > 380 ? 10 : 4}
-        {xScale}
-        format={scaleTime().tickFormat(2, "%H:%M")} />
-      <AxisLeft {width} {height} {margin} {yScale} position="left" />
-      <Labels
-        labelfory={true}
-        {width}
-        {height}
-        {margin}
-        yoffset={10}
-        xoffset={350}
-        label={'£ UK Energy Market Index Price / MWh ↑'} />
+  const PRICE_SCALE = 1000;
+  const GEN_SCALE = 1000;
 
-      <path
-        in:draw={{ duration: 3000 }}
-        d={lineGenerator(dayPriceData)}
-        stroke="#ff0000"
-        stroke-width={2.5}
-        fill="none" />
-    </svg>
-  {/if}
+  function formatMoneyPerKWh(value) {
+    if (!Number.isFinite(value)) return '—';
+    return `£${(value / PRICE_SCALE).toPrecision(2)} / KWh`;
+  }
+
+  function formatTime(value) {
+    return value ? value.substring(11, 16) : '—';
+  }
+
+  function asArray(value) {
+    return Array.isArray(value) ? value : [];
+  }
+
+  function quantityFor(entry, type) {
+    const value = entry?.data?.find((item) => item.psrType === type)?.quantity;
+    return Number.isFinite(value) ? value / GEN_SCALE : 0;
+  }
+
+  function sumQuantities(entry, types) {
+    return types.reduce((sum, type) => sum + quantityFor(entry, type), 0);
+  }
+
+  let dayPriceData = $derived(
+    data?.price ? [...data.price].reverse() : []
+  );
+
+  let dayGenData = $derived(
+    asArray(data?.generation)
+  );
+
+  let priceSeries = $derived([
+    {
+      label: '',
+      data: dayPriceData,
+      xAccessor: (d) => new Date(d.startTime),
+      yAccessor: (d) => d.price / PRICE_SCALE,
+      stroke: '#ff0000'
+    }
+  ]);
+
+  let generationSeries = $derived([
+    {
+      label: 'Solar',
+      data: dayGenData,
+      xAccessor: (d) => new Date(d.startTime),
+      yAccessor: (d) => quantityFor(d, 'Solar'),
+      stroke: '#ffec73'
+    },
+    {
+      label: 'Nuclear',
+      data: dayGenData,
+      xAccessor: (d) => new Date(d.startTime),
+      yAccessor: (d) => quantityFor(d, 'Nuclear'),
+      stroke: '#0000ff'
+    },
+    {
+      label: 'Gas',
+      data: dayGenData,
+      xAccessor: (d) => new Date(d.startTime),
+      yAccessor: (d) => quantityFor(d, 'Fossil Gas'),
+      stroke: '#ffa500'
+    },
+    {
+      label: 'Wind',
+      data: dayGenData,
+      xAccessor: (d) => new Date(d.startTime),
+      yAccessor: (d) => sumQuantities(d, ['Wind Offshore', 'Wind Onshore']),
+      stroke: '#008000'
+    },
+    {
+      label: 'Biomass',
+      data: dayGenData,
+      xAccessor: (d) => new Date(d.startTime),
+      yAccessor: (d) => quantityFor(d, 'Biomass'),
+      stroke: '#800080'
+    },
+    {
+      label: 'Coal',
+      data: dayGenData,
+      xAccessor: (d) => new Date(d.startTime),
+      yAccessor: (d) => quantityFor(d, 'Fossil Hard Coal'),
+      stroke: '#555555'
+    }
+  ]);
+
+  // Define your dashboard in one place.
+  // `span` uses a 12-column grid.
+  // 12 = full width, 6 = half width, 3 = quarter width, etc.
+  let dashboardSections = $derived([
+    {
+      kind: 'stats',
+      span: 12,
+      title: 'Market Overview'
+    },
+    {
+      kind: 'chart',
+      span: 6,
+      title: '£ UK Energy Market Index Price / KWh',
+      series: priceSeries
+    },
+    {
+      kind: 'chart',
+      span: 6,
+      title: 'UK Energy Generation by Type / GW',
+      series: generationSeries
+    }
+  ]);
+</script>
+
+<div class="page-wrapper">
+  <div class="dashboard-shell">
+    <h1>UK Energy Dashboard</h1>
+    <p>This project intends to bring all information on UK energy to one place</p>
+
+    <div class="dashboard-grid">
+      {#each dashboardSections as section, i}
+        {#if section.kind === 'stats'}
+          <aside class="card" style={`grid-column: span ${section.span};`}>
+            <h3>{section.title}</h3>
+            <p>Time: {data?.now ?? '—'}</p>
+            <p>
+              Price: {formatMoneyPerKWh(data?.price?.[0]?.price)} at {formatTime(data?.price?.[0]?.startTime)}
+            </p>
+          </aside>
+        {:else if section.kind === 'chart'}
+          <section class="card chart-block" style={`grid-column: span ${section.span};`}>
+            <LineChart
+              title={section.title}
+              series={section.series}
+            />
+          </section>
+        {/if}
+      {/each}
+    </div>
+  </div>
 </div>
 
-<script>
-import {scaleTime, scaleLinear } from 'd3-scale';
-import { extent, max } from 'd3-array';
-import { line, curveBasis } from 'd3-shape';
-import { draw } from 'svelte/transition';
-import { onMount } from 'svelte';
-// Component imports
-import AxisLeft from './AxisLeftV5.svelte';
-import AxisBottom from './AxisBottomV5.svelte';
-import Labels from './Labels.svelte';
+<style>
+  .page-wrapper {
+    width: 100%;
+    min-height: 100vh;
+  }
 
-let { data } = $props();
-let dayPriceData = $derived(data?.price.reverse() || []);
+  .dashboard-shell {
+    width: 100%;
+    max-width: 1500px; /* cap overall dashboard width to prevent cards from growing indefinitely */
+    margin: 0 auto; /* center the capped container */
+    /* padding-inline: clamp(16px, 3vw, 48px); */
+    box-sizing: border-box;
+    padding-top: 0px;
+    padding-left: 1em;
+    padding-right: 1em;
+  }
 
-let width = $state(0);
-const height = 350;
-const margin = {top: 60, right: 35, bottom: 30, left:35};
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 5px;
+    width: 100%;
+    box-sizing: border-box;
+    align-items: stretch; /* ensure children in the same row match height */
+  }
 
-let xScale = $derived(
-dayPriceData && width
-    ? scaleTime()
-        .domain(extent(dayPriceData, (d) => new Date(d.startTime)))
-        .range([margin.left, width - margin.right])
-    : null
-);
+  .card {
+    background: #ffffff;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 16px;
+    box-sizing: border-box;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100%; /* allow the card to stretch to the grid row height */
+  }
 
-let yScale = $derived(
-dayPriceData && width
-    ? scaleLinear()
-        .domain([0, max(dayPriceData, (d) => d.price)])
-        .range([height - margin.bottom, margin.top])
-    : null
-);
+  .chart-block {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+  }
 
-let lineGenerator = $derived(
-xScale && yScale
-    ? line()
-        .x((d) => xScale(new Date(d.startTime)))
-        .y((d) => yScale(d.price))
-        .curve(curveBasis)
-    : null
-);
+  @media (max-width: 1024px) {
+    .dashboard-grid {
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+    }
+  }
 
-</script>
+  @media (max-width: 800px) {
+    .dashboard-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .dashboard-grid > * {
+      grid-column: auto !important;
+    }
+    /* Reduce the outer padding on small screens to maximize usable space */
+    .dashboard-shell {
+      padding-inline: 8px;
+    }
+  }
+</style>

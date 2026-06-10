@@ -1,5 +1,5 @@
 <script>
-  let { yScale, margin, ticksNumber = 5 } = $props();
+  let { yScale, margin, ticksNumber = 6 } = $props();
 </script>
 
 {#if yScale}

@@ -9,7 +9,7 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-<nav>
+<nav class="navbar">
 	<a href={resolve('/')}>home</a>
 	<a href={resolve('/about')}>about</a>
 </nav>

@@ -25,8 +25,13 @@ export const load = async({ fetch }) => {
     const priceData = await priceRes.json()
     const price = priceData.data
 
+    const genRes = await fetch(`https://data.elexon.co.uk/bmrs/api/v1/generation/actual/per-type?from=${yesterdayURI}Z&to=${todayURI}Z`)
+    const genData = await genRes.json()
+    const generation = genData.data
+
     return {
-        price: price,
+        price,
+        generation,
         now: now.toTimeString().substring(0,5)
     }
 }
