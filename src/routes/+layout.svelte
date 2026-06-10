@@ -1,6 +1,7 @@
 <script lang="ts">
 	import favicon from '$lib/assets/favicon.svg';
 	import { resolve } from '$app/paths';
+	import '../styles.css';
 	let { children } = $props();
 </script>
 
