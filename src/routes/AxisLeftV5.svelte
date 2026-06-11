@@ -13,14 +13,12 @@
       y2={yScale(yScale.domain()[1])} />
     <!-- Specify the number of ticks here -->
     {#each yScale.ticks(ticksNumber) as tick}
-      {#if tick !== 0}
         <line
           stroke="currentColor"
           x1={0}
           x2={-6}
           y1={yScale(tick)}
           y2={yScale(tick)} />
-      {/if}
 
       <text
         fill="currentColor"

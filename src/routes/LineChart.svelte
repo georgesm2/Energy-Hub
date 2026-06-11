@@ -2,7 +2,6 @@
   import { scaleTime, scaleLinear } from 'd3-scale';
   import { extent, max, min } from 'd3-array';
   import { line, curveBasis } from 'd3-shape';
-  import { draw } from 'svelte/transition';
 
   import AxisLeft from './AxisLeftV5.svelte';
   import AxisBottom from './AxisBottomV5.svelte';
@@ -10,13 +9,15 @@
   let {
     title,
     series = [],
-    height = 350,
-    margin = { top: 10, right: 35, bottom: 30, left: 30 },
+    margin = { top: 10, right: 40, bottom: 30, left: 40 },
     xFormat = (d) => String(d.getHours()).padStart(2, '0') + ':00',
     curve = curveBasis
   } = $props();
 
   let width = $state(0);
+  
+  // 1. We track the explicit height of the SVG container, not the whole card
+  let svgHeight = $state(0); 
 
   let allPoints = $derived(
     series.flatMap((s) => s.data ?? [])
@@ -32,15 +33,17 @@
           .range([margin.left, width - margin.right])
       : null
   );
+  
+  // 2. Base your yScale calculation strictly on the svgHeight!
   let yScale = $derived(
-    allPoints.length && width
+    allPoints.length && width && svgHeight
       ? scaleLinear()
           .domain([
-            min(series, (s) => min(s.data ?? [], s.yAccessor)),
+            Math.min(0, min(series, (s) => min(s.data ?? [], s.yAccessor))),
             max(series, (s) => max(s.data ?? [], s.yAccessor))
           ])
           .nice()
-          .range([height - margin.bottom, margin.top])
+          .range([svgHeight - margin.bottom, margin.top]) // Use svgHeight here
       : null
   );
 
@@ -54,62 +57,65 @@
 
 <div class="chart-wrapper" bind:clientWidth={width}>
   {#if title}
-    <h3>{title}</h3>
+    <h3 class="chart-title">{title}</h3>
   {/if}
 
-  {#if width && xScale && yScale}
-    <svg {width} {height}>
+  <svg width="100%" class="fluid-svg" bind:clientHeight={svgHeight}>
+    {#if width && svgHeight && xScale && yScale}
       <AxisBottom
         {width}
-        {height}
-        {margin}
+        height={svgHeight}  {margin}
         {xScale}
         format={xFormat}
       />
 
       <AxisLeft
         {width}
-        {height}
-        {margin}
+        height={svgHeight}  {margin}
         {yScale}
         position="left"
       />
 
       {#each series as s}
         {#if s.data?.length}
-          <path
-            in:draw={{ duration: 10000 }}
-            d={makeLineGenerator(s)(s.data)}
-            stroke={s.stroke ?? '#000000'}
-            stroke-width={s.strokeWidth ?? 2}
-            fill="none"
-          />
+          {#key s.data}
+            <path
+              d={makeLineGenerator(s)(s.data)}
+              stroke={s.stroke ?? '#000000'}
+              stroke-width={s.strokeWidth ?? 2}
+              fill="none"
+            />
+          {/key}
         {/if}
       {/each}
-    </svg>
-
-    {#if series.some((s) => s.label)}
-      <div class="legend">
-        {#each series as s}
-          {#if s.label}
-            <div class="legend-item">
-              <span
-                class="legend-line"
-                style={`background-color: ${s.stroke ?? '#000000'}`}
-              ></span>
-              <span>{s.label}</span>
-            </div>
-          {/if}
-        {/each}
-      </div>
     {/if}
+  </svg>
+
+  {#if series.some((s) => s.label)}
+    <div class="legend">
+      {#each series as s}
+        {#if s.label}
+          <div class="legend-item">
+            <span
+              class="legend-line"
+              style={`background-color: ${s.stroke ?? '#000000'}`}
+            ></span>
+            <span>{s.label}</span>
+          </div>
+        {/if}
+      {/each}
+    </div>
   {/if}
 </div>
 
 <style>
   .chart-wrapper {
     width: 100%;
+    height: 100%;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
   }
 
   h3 {
@@ -118,6 +124,7 @@
 
   svg {
     display: block;
+    flex-grow:1 ;
   }
 
   .legend {
@@ -126,6 +133,7 @@
     gap: 12px;
     margin-top: 8px;
     font-size: 0.875rem;
+    flex-shrink: 0;
   }
 
   .legend-item {
@@ -136,7 +144,7 @@
 
   .legend-line {
     width: 24px;
-    height: 3px;
+    height: 4px;
     display: inline-block;
     border-radius: 999px;
   }

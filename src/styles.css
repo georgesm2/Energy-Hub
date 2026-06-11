@@ -10,7 +10,7 @@ body {
 
 h1, h2, h3 {
   color: #222;
-  line-height: 1.2;
+  line-height: 1.0;
 }
 
 a {
@@ -30,12 +30,20 @@ img {
 
 .navbar {
   display: flex;
-  gap: 1rem;
+  gap: 3rem;
+  align-items: center;
   margin-bottom: 0rem;
-  padding: 0.75rem;
+  padding: 0 1.5rem 0 1.5rem;
   background-color: #fff;
   border-radius: 8px;
   max-width: 1500px;
   margin: 0 auto; 
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+@media (max-width: 1000px) {
+  body {
+    margin-left: 0.2em;
+    margin-right: 0.2em;
+  }
 }

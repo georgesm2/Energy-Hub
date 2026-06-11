@@ -32,17 +32,28 @@
     data?.price ? [...data.price].reverse() : []
   );
 
+  let dayAgileData = $derived(
+    asArray(data.agile)
+  );
+
   let dayGenData = $derived(
     asArray(data?.generation)
   );
 
   let priceSeries = $derived([
     {
-      label: '',
+      label: 'Wholesale Market Index',
       data: dayPriceData,
       xAccessor: (d) => new Date(d.startTime),
       yAccessor: (d) => d.price / PRICE_SCALE,
       stroke: '#ff0000'
+    },
+    {
+      label: 'Octopus Agile',
+      data: dayAgileData,
+      xAccessor: (d) => new Date(d.valid_from),
+      yAccessor: (d) => d.value_inc_vat / 100,
+      stroke: '#0000ff'
     }
   ]);
 
@@ -97,19 +108,30 @@
   let dashboardSections = $derived([
     {
       kind: 'stats',
-      span: 12,
+      span: 3,
       title: 'Market Overview'
     },
     {
-      kind: 'chart',
-      span: 6,
-      title: '£ UK Energy Market Index Price / KWh',
-      series: priceSeries
+      kind: 'hist-buttons',
+      span: 5,
+      title: 'Historical Data'
+    },
+    {
+      kind: 'future-buttons',
+      span: 4,
+      title: 'Forecast'
     },
     {
       kind: 'chart',
       span: 6,
-      title: 'UK Energy Generation by Type / GW',
+      title: '£ UK Electricity Market Index Price / KWh',
+      series: priceSeries,
+      info: 'Note: Agile price forecasts ahead of public release of wholesale market index.'
+    },
+    {
+      kind: 'chart',
+      span: 6,
+      title: 'UK Electricity Generation by Type / GW',
       series: generationSeries
     }
   ]);
@@ -117,7 +139,6 @@
 
 <div class="page-wrapper">
   <div class="dashboard-shell">
-    <h1>UK Energy Dashboard</h1>
     <p>This project intends to bring all information on UK energy to one place</p>
 
     <div class="dashboard-grid">
@@ -126,16 +147,34 @@
           <aside class="card" style={`grid-column: span ${section.span};`}>
             <h3>{section.title}</h3>
             <p>Time: {data?.now ?? '—'}</p>
+            <p>Demand: {data?.demand?.[0]?.quantity / 1000} GW at {formatTime(data?.demand?.[0]?.publishTime)}</p>
             <p>
               Price: {formatMoneyPerKWh(data?.price?.[0]?.price)} at {formatTime(data?.price?.[0]?.startTime)}
             </p>
           </aside>
+        {:else if section.kind === 'hist-buttons'}
+          <section class="card" style={`grid-column: span ${section.span};`}>
+            <h3>{section.title}</h3>
+            <button>Today</button>
+            <button>Last Week</button>
+            <button>Last Month</button>
+            <button>Last Year</button>
+            <button>All Time</button>
+          </section>
+        {:else if section.kind === 'future-buttons'}
+          <section class="card" style={`grid-column: span ${section.span};`}>
+            <h3>{section.title}</h3>
+            <button>Today</button>
+            <button>Tomorrow</button>
+            <button>This Week</button>
+          </section>
         {:else if section.kind === 'chart'}
           <section class="card chart-block" style={`grid-column: span ${section.span};`}>
             <LineChart
               title={section.title}
               series={section.series}
             />
+            <p>{section.info}</p>
           </section>
         {/if}
       {/each}
@@ -151,9 +190,8 @@
 
   .dashboard-shell {
     width: 100%;
-    max-width: 1500px; /* cap overall dashboard width to prevent cards from growing indefinitely */
+    max-width: 1200px; /* cap overall dashboard width to prevent cards from growing indefinitely */
     margin: 0 auto; /* center the capped container */
-    /* padding-inline: clamp(16px, 3vw, 48px); */
     box-sizing: border-box;
     padding-top: 0px;
     padding-left: 1em;
@@ -172,13 +210,19 @@
   .card {
     background: #ffffff;
     border: 2px solid #e0e0e0;
-    border-radius: 8px;
+    border-radius: 25px;
     padding: 16px;
     box-sizing: border-box;
     min-width: 0;
-    display: flex;
-    flex-direction: column;
     height: 100%; /* allow the card to stretch to the grid row height */
+
+    h3 {
+      margin: 0 0 8px 0;
+    }
+
+    p {
+      margin: 0;
+    }
   }
 
   .chart-block {
@@ -186,6 +230,14 @@
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
+    height: 100%;
+    min-height: 500px;
+  }
+
+  .chart-block :global(> :first-child) {
+    flex-grow: 1;
+    /* If LineChart relies on a percentage height internally, 
+       min-height ensures it computes correctly */
   }
 
   @media (max-width: 1024px) {
