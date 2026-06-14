@@ -1,13 +1,12 @@
 {
-    "$schema": "node_modules/wrangler/config-schema.json",
-    "name": "energy-hub",
-    "compatibility_date": "2026-06-13",
-    "compatibility_flags": ["nodejs_compat"],
-    "d1_databases": [
-        {
-            "binding": "energy_db",
-            "database_name": "energy_db",
-            "database_id": "1fdb3b7c-6107-43d9-997a-54b660b17af8"
-        }
-    ]
+  "name": "energy-hub",
+  "compatibility_date": "2026-06-14",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "energy_db",
+      "database_id": "1fdb3b7c-6107-43d9-997a-54b660b17af8",
+      "remote": true
+    }
+  ]
 }

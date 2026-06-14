@@ -1,26 +1,31 @@
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ platform }) {
-    const db = platform?.env?.energy_db;
+    const db = platform?.env?.DB;
 
     if (!db) {
-        console.error("Database binding missing!")
-        return { metrics: []};
+        console.error("SvelteKit cannot find the DB binding object!");
+        return { metrics: [] };
     }
 
     try {
-        const {results} = await db.prepare(`
-            SELECT timestamp, category, value
-            FROM energy_metrics
-            WHERE timestamp >= datetime('now', '-7 days')
-            ORDER BY timestamp DESC
+        // Zero filters. If the connection is live, this WILL return 50 rows.
+        const { results } = await db
+            .prepare(`
+                SELECT timestamp, category, value 
+                FROM energy_metrics 
+                ORDER BY timestamp DESC 
+                LIMIT 50
             `)
-        .all();
+            .all();
 
+        console.log(`D1 Connection Success! Retrieved ${results?.length || 0} rows.`);
+        
         return {
-            metrics: results
+            metrics: results || []
         };
+
     } catch (error) {
-        console.error("Failed to read from D1: ", error);
-        return { metrics: []};
+        console.error("Failed to read from Cloudflare D1:", error);
+        return { metrics: [] };
     }
 }
