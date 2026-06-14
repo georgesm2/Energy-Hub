@@ -13,8 +13,8 @@ export async function load({ platform }) {
             .prepare(`
                 SELECT timestamp, category, value 
                 FROM energy_metrics 
-                ORDER BY timestamp DESC 
-                LIMIT 50
+                WHERE timestamp >= datetime('now','-1 day')
+                ORDER BY timestamp ASC 
             `)
             .all();
 
