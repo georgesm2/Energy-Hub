@@ -4,9 +4,15 @@ import subprocess
 import pandas as pd
 import time
 from datetime import datetime, timedelta, UTC
+import json
 
-START_DATE = datetime(2026, 6, 13, 0, 0, 0)
+START_DATE = datetime(2026, 6, 14, 12, 0, 0)
 END_DATE = datetime.utcnow()
+
+DB_NAME = os.environ.get("D1_DB_NAME", "energy_db")
+
+DOWNSAMPLE_MONTH_CUTOFF = pd.Timestamp.now('UTC').tz_localize(None) - pd.Timedelta(days=30)
+DOWNSAMPLE_YEAR_CUTOFF = pd.Timestamp.now('UTC').tz_localize(None) - pd.Timedelta(days=365)
 
 # params is for anything above
 # all energy prices are converted to £/kWh
@@ -69,8 +75,7 @@ API_CONFIGS = {
     }
 }
 
-def fetch_batches(config):
-    start = START_DATE
+def fetch_historical_batches(config, start):
     all_data_frames = []
 
     url = config["url"]
@@ -122,7 +127,7 @@ def fetch_batches(config):
 
 def process_data(df, config):
     if df.empty:
-        print(f"No data collected for {config['category_label']}")
+        print(f"No data collected.")
         return pd.DataFrame()
 
     df = df.rename(columns=config['column_rename_map'])
@@ -167,7 +172,6 @@ def push_to_d1(df,config):
     if df.empty:
         return
 
-    db_name = "energy_db"
     temp_file = "batch_insert.sql"
 
     print("Preparing database upload")
@@ -189,7 +193,7 @@ def push_to_d1(df,config):
 
         try:
             cmd = [
-                "npx", "wrangler", "d1", "execute", db_name, "--remote", f"--file={temp_file}"
+                "npx", "wrangler", "d1", "execute", DB_NAME, "--remote", f"--file={temp_file}"
             ]
             subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
 
@@ -199,12 +203,28 @@ def push_to_d1(df,config):
             print(f"Upload error: {e.stderr.decode()}")
             break
 
+def get_latest_date():
+    try:
+        cmd = [
+            "npx", "wrangler", "d1", "execute", DB_NAME, "--remote", '--command="SELECT timestamp FROM energy_metrics ORDER BY timestamp DESC LIMIT 1"', "--json"
+        ]
+        output = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        # get the latest time in database then set back a few hours as different APIs have different upload schedules
+        start = pd.to_datetime(json.loads(output.stdout)[0]['results'][0]['timestamp']) - pd.Timedelta(hours=5)
+        print(f"Last data at {start}.")
+        return start
+    except subprocess.CalledProcessError as e:
+        print(f"Request error: {e.stderr.decode()}")
+        return
+
 def main():
-    print("Fetching latest data...")
+    print("Requesting latest timestamp from D1")
+    start = get_latest_date()
+    print("Fetching historical data...")
 
     for api_name, config in API_CONFIGS.items():
         print(f"Fetching {api_name} data...")
-        raw_df = fetch_batches(config)
+        raw_df = fetch_historical_batches(config, start)
         df = process_data(raw_df, config)
         push_to_d1(df,config)
         print("Pushed history to D1.")
