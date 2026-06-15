@@ -1,1 +1,55 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="107" height="128" viewBox="0 0 107 128"><title>svelte-logo</title><path d="M94.157 22.819c-10.4-14.885-30.94-19.297-45.792-9.835L22.282 29.608A29.92 29.92 0 0 0 8.764 49.65a31.5 31.5 0 0 0 3.108 20.231 30 30 0 0 0-4.477 11.183 31.9 31.9 0 0 0 5.448 24.116c10.402 14.887 30.942 19.297 45.791 9.835l26.083-16.624A29.92 29.92 0 0 0 98.235 78.35a31.53 31.53 0 0 0-3.105-20.232 30 30 0 0 0 4.474-11.182 31.88 31.88 0 0 0-5.447-24.116" style="fill:#ff3e00"/><path d="M45.817 106.582a20.72 20.72 0 0 1-22.237-8.243 19.17 19.17 0 0 1-3.277-14.503 18 18 0 0 1 .624-2.435l.49-1.498 1.337.981a33.6 33.6 0 0 0 10.203 5.098l.97.294-.09.968a5.85 5.85 0 0 0 1.052 3.878 6.24 6.24 0 0 0 6.695 2.485 5.8 5.8 0 0 0 1.603-.704L69.27 76.28a5.43 5.43 0 0 0 2.45-3.631 5.8 5.8 0 0 0-.987-4.371 6.24 6.24 0 0 0-6.698-2.487 5.7 5.7 0 0 0-1.6.704l-9.953 6.345a19 19 0 0 1-5.296 2.326 20.72 20.72 0 0 1-22.237-8.243 19.17 19.17 0 0 1-3.277-14.502 17.99 17.99 0 0 1 8.13-12.052l26.081-16.623a19 19 0 0 1 5.3-2.329 20.72 20.72 0 0 1 22.237 8.243 19.17 19.17 0 0 1 3.277 14.503 18 18 0 0 1-.624 2.435l-.49 1.498-1.337-.98a33.6 33.6 0 0 0-10.203-5.1l-.97-.294.09-.968a5.86 5.86 0 0 0-1.052-3.878 6.24 6.24 0 0 0-6.696-2.485 5.8 5.8 0 0 0-1.602.704L37.73 51.72a5.42 5.42 0 0 0-2.449 3.63 5.79 5.79 0 0 0 .986 4.372 6.24 6.24 0 0 0 6.698 2.486 5.8 5.8 0 0 0 1.602-.704l9.952-6.342a19 19 0 0 1 5.295-2.328 20.72 20.72 0 0 1 22.237 8.242 19.17 19.17 0 0 1 3.277 14.503 18 18 0 0 1-8.13 12.053l-26.081 16.622a19 19 0 0 1-5.3 2.328" style="fill:#fff"/></svg>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Generator: Adobe Fireworks 10, Export SVG Extension by Aaron Beall (http://fireworks.abeall.com) . Version: 0.6.1  -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   id="bitcoin_lightning_icon.fw-Page%201"
+   viewBox="0 0 280 280"
+   style="background-color:#ffffff00"
+   version="1.1"
+   xml:space="preserve"
+   x="0px"
+   y="0px"
+   width="280px"
+   height="280px"
+   sodipodi:docname="11_22.svg"
+   inkscape:version="0.92.5 (2060ec1f9f, 2020-04-08)"><metadata
+   id="metadata4574"><rdf:RDF><cc:Work
+       rdf:about=""><dc:format>image/svg+xml</dc:format><dc:type
+         rdf:resource="http://purl.org/dc/dcmitype/StillImage" /><dc:title></dc:title></cc:Work></rdf:RDF></metadata><defs
+   id="defs4572" /><sodipodi:namedview
+   pagecolor="#ffffff"
+   bordercolor="#666666"
+   borderopacity="1"
+   objecttolerance="10"
+   gridtolerance="10"
+   guidetolerance="10"
+   inkscape:pageopacity="0"
+   inkscape:pageshadow="2"
+   inkscape:window-width="1920"
+   inkscape:window-height="1016"
+   id="namedview4570"
+   showgrid="false"
+   inkscape:zoom="3.05"
+   inkscape:cx="140"
+   inkscape:cy="140"
+   inkscape:window-x="0"
+   inkscape:window-y="27"
+   inkscape:window-maximized="1"
+   inkscape:current-layer="bitcoin_lightning_icon.fw-Page%201" />
+	<path
+   id="Ellipse"
+   d="M 7 140.5 C 7 66.769 66.769 7 140.5 7 C 214.231 7 274 66.769 274 140.5 C 274 214.231 214.231 274 140.5 274 C 66.769 274 7 214.231 7 140.5 Z"
+   fill="#f7931a"
+   style="fill:#008000;fill-opacity:1" />
+	<path
+   d="M 161.1943 51.5 C 153.2349 72.1607 145.2756 94.4107 135.7244 116.6607 C 135.7244 116.6607 135.7244 119.8393 138.9081 119.8393 L 204.1747 119.8393 C 204.1747 119.8393 204.1747 121.4286 205.7667 123.0179 L 110.2545 229.5 C 108.6626 227.9107 108.6626 226.3214 108.6626 224.7321 L 142.0919 153.2143 L 142.0919 146.8571 L 75.2333 146.8571 L 75.2333 140.5 L 156.4187 51.5 L 161.1943 51.5 Z"
+   fill="#ffffff"
+   id="path4567" />
+</svg>

@@ -7,6 +7,9 @@
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
+	<title>UK Energy Dashboard</title>
+	<meta name="description" content="UK Energy Dashboard" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
 </svelte:head>
 
 <nav class="navbar">

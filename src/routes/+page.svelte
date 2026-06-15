@@ -3,11 +3,11 @@
 
     import { init, use } from 'echarts/core'
     import { LineChart } from 'echarts/charts'
-    import { GridComponent, TitleComponent, TooltipComponent, LegendComponent } from 'echarts/components'
+    import { GridComponent, GeoComponent, TooltipComponent, LegendComponent } from 'echarts/components'
     import { CanvasRenderer } from 'echarts/renderers'
     
     // now with tree-shaking
-    use([LineChart, GridComponent, CanvasRenderer, TitleComponent, TooltipComponent, LegendComponent])
+    use([LineChart, GridComponent, CanvasRenderer, TooltipComponent, LegendComponent])
 
     let { data } = $props(); 
     let now = new Date();
@@ -165,6 +165,18 @@
         ]
     };
 
+    let inter_map_options = {
+        geo: {
+            map: 'europe'
+        },
+        tooltip: {},
+        visualMap: [
+            {
+                orient: 'horizontal'
+            }
+        ]
+    };
+
 
 
 </script>
@@ -189,6 +201,12 @@
         <h3>Electricity Generation by Type / GW</h3>
         <div class="chart-area">
             <Chart {init} options={gen_chart_options} />
+        </div>
+    </div>
+    <div class="card chart" id="interconnector-map">
+        <h3>Interconnectors</h3>
+        <div class="chart-area">
+            
         </div>
     </div>
 </main>
