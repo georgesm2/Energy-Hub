@@ -3,12 +3,12 @@
     import { onMount } from 'svelte';
     import { init, use, registerMap } from 'echarts/core';
     import { LineChart, PieChart, MapChart } from 'echarts/charts';
-    import { GraphicComponent, GridComponent, GeoComponent, VisualMapComponent, TooltipComponent, LegendComponent } from 'echarts/components';
+    import { GraphicComponent, ToolboxComponent, DataZoomComponent, GridComponent, GeoComponent, VisualMapComponent, TooltipComponent, LegendComponent } from 'echarts/components';
     import { CanvasRenderer } from 'echarts/renderers';
     import europeGeoJSON from '$lib/assets/europe.geojson?raw';
     
     // now with tree-shaking
-    use([LineChart, PieChart,MapChart, GraphicComponent, GridComponent, CanvasRenderer, GeoComponent, VisualMapComponent, TooltipComponent, LegendComponent])
+    use([LineChart, PieChart,MapChart, ToolboxComponent, DataZoomComponent, GraphicComponent, GridComponent, CanvasRenderer, GeoComponent, VisualMapComponent, TooltipComponent, LegendComponent])
 
     let { data } = $props(); 
     let now = new Date();
@@ -45,6 +45,23 @@
                 return text;
             }
         },
+        toolbox: {
+            feature: {
+            restore: {},
+            saveAsImage: {}
+            }
+        },
+        dataZoom: [
+            {
+                type: 'inside',
+                start: 90,
+                end: 100
+            },
+            {
+                start: 90,
+                end: 100
+            }
+        ],
         legend: {
             data: ["Wholesale Market", "Octopus Agile"],
         },
@@ -83,6 +100,7 @@
     let oil_data = filterByCategory('Fossil Oil', MW_TO_GW);
     let hydro_data = filterByCategory('Hydro Run-of-river and poundage', MW_TO_GW);
     let nuclear_data = filterByCategory('Nuclear', MW_TO_GW);
+    console.log(nuclear_data)
     let solar_data = filterByCategory('Solar', MW_TO_GW);
     let offshore_wind_data = filterByCategory('Wind Offshore', MW_TO_GW);
     let onshore_wind_data = filterByCategory('Wind Onshore', MW_TO_GW);
@@ -104,6 +122,24 @@
                 return text;
             }
         },
+        toolbox: {
+            feature: {
+            restore: {},
+            saveAsImage: {}
+            }
+        },
+        dataZoom: [
+            {
+                type: 'inside',
+                start: 90,
+                zoomLock: true, 
+                end: 100
+            },
+            {
+                start: 90,
+                end: 100
+            }
+        ],
         legend: {
             data: ["Biomass", "Gas", "Coal", "Oil", "Hydro", "Nuclear", "Solar", "Wind"]
         },
@@ -122,6 +158,7 @@
                 name: "Coal",
                 data: coal_data,
                 type: "line",
+                symbol: 'none',
                 smooth: true,
                 stack: 'Total',
                 areaStyle: {}
@@ -130,6 +167,7 @@
                 name: "Oil",
                 data: oil_data,
                 type: "line",
+                symbol: 'none',
                 smooth: true,
                 stack: 'Total',
                 areaStyle: {}
@@ -138,6 +176,7 @@
                 name: "Biomass",
                 data: biomass_data,
                 type: "line",
+                symbol: 'none',
                 smooth: true,
                 stack: 'Total',
                 areaStyle: {}
@@ -146,6 +185,7 @@
                 name: "Nuclear",
                 data: nuclear_data,
                 type: "line",
+                symbol: 'none',
                 smooth: true,
                 stack: 'Total',
                 areaStyle: {}
@@ -154,6 +194,7 @@
                 name: "Gas",
                 data: gas_data,
                 type: "line",
+                symbol: 'none',
                 smooth: true,
                 stack: 'Total',
                 areaStyle: {}
@@ -162,6 +203,7 @@
                 name: "Hydro",
                 data: hydro_data,
                 type: "line",
+                symbol: 'none',
                 smooth: true,
                 stack: 'Total',
                 areaStyle: {}
@@ -171,6 +213,7 @@
                 data: solar_data,
                 type: "line",
                 smooth: true,
+                symbol: 'none',
                 stack: 'Total',
                 areaStyle: {}
             },
@@ -178,6 +221,7 @@
                 name: "Wind",
                 data: total_wind_data,
                 type: "line",
+                symbol: 'none',
                 smooth: true,
                 stack: 'Total',
                 areaStyle: {}
@@ -207,8 +251,6 @@
             }
         },
         legend: {
-            top: '5%',
-            left: 'center'
         },
         series: [
             {
@@ -270,8 +312,8 @@
         map: 'europe',
         roam: false,
         boundingCoords: [
-            [-5, 40],
-            [0, 64]
+            [0.4, 40],
+            [0.5, 64]
         ],
         layoutCenter: ['50%','50%'],
         layoutsize: 800,
@@ -290,6 +332,7 @@
         orient: 'horizontal',
         left: 0,
         bottom: 0,
+        show: false,
         min: -Math.max(FRinter, IEinter, NLinter, NOinter, DNinter, BEinter),
         max: Math.max(FRinter, IEinter, NLinter, NOinter, DNinter, BEinter),
         inRange: { color: ['#FF4242','#FFFFFF', '#A7FF5C'] }
@@ -326,19 +369,19 @@
         <p>Generation: {total_generation_data.toFixed(2)} GW + Imports/Exports: {(total_importexport/1000).toFixed(2)} GW = {(total_generation_data + total_importexport/1000).toFixed(2)} GW</p>
     </div>
     <div class="card chart" id="generation-pie">
-        <h3>Generation by Source</h3>
+        <h3>Generation Breakdown</h3>
         <div class="chart-area">
             <Chart {init} options={gen_pie_options} />
         </div>
     </div>
     <div class="card chart" id="generation-chart">
-        <h3>Electricity Generation by Type / GW</h3>
+        <h3>Generation by Type / GW</h3>
         <div class="chart-area">
             <Chart {init} options={gen_chart_options} />
         </div>
     </div>
     <div class="card chart" id="interconnector-map">
-        <h3>Imports / Exports (as of {FReleclink[FReleclink.length - 1][0].substring(10,16)})</h3>
+        <h3>Imports / Exports</h3>
         <div class="chart-area">
             <Chart {init} options={inter_map_options} />
         </div>
@@ -353,37 +396,39 @@
 
 <style>
 .dashboard-container {
-  margin: 2rem 0rem;
-  max-width: 100%;
+  margin: 1.5rem auto;
+  max-width: 1600px;
+  align-items: center;
   display: grid;
   gap: 0.5rem;
   font-family: sans-serif;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-template-columns: repeat(8, minmax(0, 200px));
 }
 
 .card {
   background-color: #fff;
   border-radius: 10px;
   min-width: 0;
+  box-sizing: border-box;
+  text-align: center;
 }
 
 .info {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 0 0 0 0;
 }
 
 #time {
-  grid-column: 1 / 2;
+  grid-column: 1 / 3;
 }
 
 #demand {
-  grid-column: 2 / 4;
+  grid-column: 3 / 5;
 }
 
 #generation {
-    grid-column: 4 / -1;
+    grid-column: 5 / -1;
 }
 
 #generation-pie {
@@ -395,7 +440,7 @@
 }
 
 #price-chart {
-  grid-column: 1 / 3;
+  grid-column: 1 / 4;
 }
 
 #interconnector-map {
@@ -404,52 +449,91 @@
 
 .chart {
   min-width: 0;
-  padding: 0.5rem;
+  box-sizing: border-box;
+  padding: 0rem;
   padding-top: 0;
 }
 
 .chart-area {
-  height: 28rem;
+  height: 26rem;
   width: 100%;
   overflow: hidden;
 }
 
-@media (max-width: 1000px) {
-  .dashboard-container {
-    margin: 2rem 0.5rem;
-    grid-template-columns: 1fr 1fr;
+@media (max-width: 1300px) {
+  #interconnector-map {
+    grid-column: 1 / 4;
   }
 
-  #time {
-    grid-column: 1;
-  }
-  #demand {
-    grid-column: 2 / -1;
-  }
-  #generation,
-  #price-chart,
   #generation-chart {
-    grid-column: 1 / -1;
+    grid-column: 4 / -1;
   }
+
+  #generation-pie {
+    grid-column: 1 / 4;
+  }
+
+  #price-chart {
+    grid-column: 4 / -1;
+  }
+  
 }
 
-@media (max-width: 550px) {
-  .dashboard-container {
-    margin: 2rem 0.5rem;
-    grid-template-columns: 1fr;
-  }
+@media (max-width: 1050px) {
+    #time {
+        grid-column: 1 / 5;
+    }
+    
+    #demand {
+        grid-column: 5 / -1;
+    }
+    #generation {
+        grid-column: 1 / -1;
+    
+    }
+  
+}
 
-  #time {
-    grid-column: 1;
-  }
-  #demand {
-    grid-column: 1;
-  }
-  #generation,
-  #price-chart,
-  #generation-chart {
-    grid-column: 1 / -1;
-  }
+@media (max-width: 850px) {
+    #interconnector-map {
+      grid-column: 1 / 5;
+    }
+  
+    #generation-chart {
+      grid-column: 1 / -1;
+    }
+  
+    #generation-pie {
+      grid-column: 1 / -1;
+    }
+  
+    #price-chart {
+      grid-column: 5 / -1;
+    }
+  
+}
+
+@media (max-width: 610px) {
+    #interconnector-map {
+      grid-column: 1 / -1;
+    }
+  
+    #generation-chart {
+      grid-column: 1 / -1;
+    }
+  
+    #generation-pie {
+      grid-column: 1 / -1;
+    }
+  
+    #price-chart {
+      grid-column: 1 / -1;
+    }
+
+    .chart-area {
+        height: 25rem;
+    }
+  
 }
 
 </style>

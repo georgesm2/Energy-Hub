@@ -5,7 +5,7 @@ import pandas as pd
 import time
 from datetime import datetime, timedelta, UTC
 
-START_DATE = datetime(2026, 6, 14, 0, 0, 0)
+START_DATE = datetime(2026, 6, 17, 12, 0, 0)
 END_DATE = datetime.utcnow()
 
 DOWNSAMPLE_MONTH_CUTOFF = pd.Timestamp.now('UTC').tz_localize(None) - pd.Timedelta(days=30)
