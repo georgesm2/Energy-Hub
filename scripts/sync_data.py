@@ -72,6 +72,19 @@ API_CONFIGS = {
             "from": start.strftime("%Y-%m-%dT%H:%MZ"),
             "to": end.strftime("%Y-%m-%dT%H:%MZ"),
         }
+    },
+    "interconnectors": {
+        "url": "https://data.elexon.co.uk/bmrs/api/v1/generation/outturn/interconnectors",
+        "days_per_request": 7,
+        "json_data_key": "data",
+        "is_wide_format": False,
+        "index_column": "startTime",
+        "columns_to_keep": ["startTime","interconnectorName","generation"],
+        "column_rename_map": {"startTime": "timestamp", "interconnectorName": "category", "generation": "value"},
+        "param_builder": lambda start, end: {
+            "publishDateTimeFrom": start.strftime("%Y-%m-%dT%H:%MZ"),
+            "publishDateTimeTo": end.strftime("%Y-%m-%dT%H:%MZ"),
+        }
     }
 }
 

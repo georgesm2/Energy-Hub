@@ -5,7 +5,7 @@ import pandas as pd
 import time
 from datetime import datetime, timedelta, UTC
 
-START_DATE = datetime(2026, 6, 14, 12, 0, 0)
+START_DATE = datetime(2026, 6, 14, 0, 0, 0)
 END_DATE = datetime.utcnow()
 
 DOWNSAMPLE_MONTH_CUTOFF = pd.Timestamp.now('UTC').tz_localize(None) - pd.Timedelta(days=30)
@@ -52,6 +52,7 @@ API_CONFIGS = {
         "index_column": "startTime",
         "columns_to_keep": ["startTime", "psrType", "quantity"],
         "column_rename_map": {"startTime": "timestamp", "psrType": "category", "quantity": "value"},
+        "record_path": "data",
         "param_builder": lambda start, end: {
             "from": start.strftime("%Y-%m-%dT%H:%MZ"),
             "to": end.strftime("%Y-%m-%dT%H:%MZ"),
@@ -68,6 +69,19 @@ API_CONFIGS = {
         "param_builder": lambda start, end: {
             "from": start.strftime("%Y-%m-%dT%H:%MZ"),
             "to": end.strftime("%Y-%m-%dT%H:%MZ"),
+        }
+    },
+    "interconnectors": {
+        "url": "https://data.elexon.co.uk/bmrs/api/v1/generation/outturn/interconnectors",
+        "days_per_request": 7,
+        "json_data_key": "data",
+        "is_wide_format": False,
+        "index_column": "startTime",
+        "columns_to_keep": ["startTime","interconnectorName","generation"],
+        "column_rename_map": {"startTime": "timestamp", "interconnectorName": "category", "generation": "value"},
+        "param_builder": lambda start, end: {
+            "publishDateTimeFrom": start.strftime("%Y-%m-%dT%H:%MZ"),
+            "publishDateTimeTo": end.strftime("%Y-%m-%dT%H:%MZ"),
         }
     }
 }
@@ -95,11 +109,10 @@ def fetch_historical_batches(config):
             response = requests.get(url, params=params)
             response.raise_for_status() 
             data = response.json()
-
             if config.get("is_wide_format"):
                 df = pd.json_normalize(
                     data.get(config["json_data_key"], []),
-                    record_path=["data"], 
+                    record_path=[config["record_path"]], 
                     meta=[config["index_column"]]
                 )
             else:
@@ -147,12 +160,12 @@ def process_data(df, config):
     processed_blocks = []
 
     if not deep_data.empty:
-        deep_data["timestamp"] = deep_data["timestamp"].dt.floor("8h")
+        deep_data["timestamp"] = deep_data["timestamp"].dt.floor("D")
         deep_data = deep_data.groupby(["timestamp", "category"])["value"].mean().reset_index()
         processed_blocks.append(deep_data)
 
     if not mid_data.empty:
-        mid_data["timestamp"] = mid_data["timestamp"].dt.floor("4h")
+        mid_data["timestamp"] = mid_data["timestamp"].dt.floor("6h")
         mid_data = mid_data.groupby(["timestamp", "category"])["value"].mean().reset_index()
         processed_blocks.append(mid_data)
 
