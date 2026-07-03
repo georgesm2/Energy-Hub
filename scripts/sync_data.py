@@ -6,7 +6,6 @@ import time
 from datetime import datetime, timedelta, UTC
 import json
 
-START_DATE = datetime(2026, 6, 14, 12, 0, 0)
 END_DATE = datetime.utcnow()
 
 DB_NAME = os.environ.get("D1_DB_NAME", "energy_db")
@@ -48,42 +47,31 @@ API_CONFIGS = {
         }
     },
     "generation": {
-        "url": "https://data.elexon.co.uk/bmrs/api/v1/generation/actual/per-type",
-        "days_per_request": 7,
-        "json_data_key": "data",
-        "is_wide_format": True,
-        "index_column": "startTime",
-        "columns_to_keep": ["startTime", "psrType", "quantity"],
-        "column_rename_map": {"startTime": "timestamp", "psrType": "category", "quantity": "value"},
-        "param_builder": lambda start, end: {
-            "from": start.strftime("%Y-%m-%dT%H:%MZ"),
-            "to": end.strftime("%Y-%m-%dT%H:%MZ"),
-        }
-    },
-    "demand": {
-        "url": "https://data.elexon.co.uk/bmrs/api/v1/demand/actual/total",
-        "days_per_request": 7,
-        "json_data_key": "data",
-        "index_column": "startTime",
-        "columns_to_keep": ["startTime", "quantity"],
-        "column_rename_map": {"startTime": "timestamp", "quantity": "value"},
-        "category_label": "demand",
-        "param_builder": lambda start, end: {
-            "from": start.strftime("%Y-%m-%dT%H:%MZ"),
-            "to": end.strftime("%Y-%m-%dT%H:%MZ"),
-        }
-    },
-    "interconnectors": {
-        "url": "https://data.elexon.co.uk/bmrs/api/v1/generation/outturn/interconnectors",
-        "days_per_request": 7,
-        "json_data_key": "data",
-        "is_wide_format": False,
-        "index_column": "startTime",
-        "columns_to_keep": ["startTime","interconnectorName","generation"],
-        "column_rename_map": {"startTime": "timestamp", "interconnectorName": "category", "generation": "value"},
+        "url": "https://data.elexon.co.uk/bmrs/api/v1/datasets/FUELINST/stream",
+        "days_per_request": 1,
+        "needs_unpacking": False,
+        "index_column": "pub",
+        "columns_to_keep": ["publishTime", "fuelType", "generation"],
+        "column_rename_map": {"publishTime": "timestamp", "fuelType": "category", "generation": "value"},
+        "record_path": "data",
         "param_builder": lambda start, end: {
             "publishDateTimeFrom": start.strftime("%Y-%m-%dT%H:%MZ"),
             "publishDateTimeTo": end.strftime("%Y-%m-%dT%H:%MZ"),
+        }
+    },
+    "solar": {
+        "url": "https://api.pvlive.uk/pvlive/api/v4/gsp/0",
+        "days_per_request": 2,
+        "needs_unpacking": True,
+        "json_data_key": "data",
+        "index_column": "gsp_id",
+        "columns_to_keep": [1,2],
+        "column_rename_map": {1: "timestamp", 2: "value"},
+        "record_path": "data",
+        "category_label": "SOLAR",
+        "param_builder": lambda start, end: {
+            "start": start.strftime("%Y-%m-%dT%H:%MZ"),
+            "end": end.strftime("%Y-%m-%dT%H:%MZ"),
         }
     }
 }
@@ -93,7 +81,6 @@ def fetch_historical_batches(config, start):
 
     url = config["url"]
     days_step = config["days_per_request"]
-    data_key = config["json_data_key"]
     columns_to_keep = config["columns_to_keep"]
     
     # move window through dates per API call
@@ -111,16 +98,11 @@ def fetch_historical_batches(config, start):
             response.raise_for_status() 
             data = response.json()
 
-            if config.get("is_wide_format"):
-                df = pd.json_normalize(
-                    data.get(config["json_data_key"], []),
-                    record_path=["data"], 
-                    meta=[config["index_column"]]
-                )
+            if config["needs_unpacking"]:
+                raw_rows = data.get(config["json_data_key"], [])
             else:
-                raw_rows = data.get(data_key, [])
-                df = pd.DataFrame(raw_rows)
-
+                raw_rows = data
+            df = pd.DataFrame(raw_rows)
             if not df.empty:
                 df = df[columns_to_keep]
                 all_data_frames.append(df)
@@ -140,7 +122,7 @@ def fetch_historical_batches(config, start):
 
 def process_data(df, config):
     if df.empty:
-        print(f"No data collected.")
+        print(f"No data collected for {config['category_label']}")
         return pd.DataFrame()
 
     df = df.rename(columns=config['column_rename_map'])
@@ -162,16 +144,18 @@ def process_data(df, config):
     processed_blocks = []
 
     if not deep_data.empty:
-        deep_data["timestamp"] = deep_data["timestamp"].dt.floor("8h")
+        deep_data["timestamp"] = deep_data["timestamp"].dt.floor("D")
         deep_data = deep_data.groupby(["timestamp", "category"])["value"].mean().reset_index()
         processed_blocks.append(deep_data)
 
     if not mid_data.empty:
-        mid_data["timestamp"] = mid_data["timestamp"].dt.floor("4h")
+        mid_data["timestamp"] = mid_data["timestamp"].dt.floor("6h")
         mid_data = mid_data.groupby(["timestamp", "category"])["value"].mean().reset_index()
         processed_blocks.append(mid_data)
 
     if not modern_data.empty:
+        modern_data["timestamp"] = modern_data["timestamp"].dt.floor("30min")
+        modern_data = modern_data.groupby(["timestamp", "category"])["value"].mean().reset_index()
         processed_blocks.append(modern_data)
 
     df = pd.concat(processed_blocks, ignore_index=True)

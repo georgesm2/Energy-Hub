@@ -91,26 +91,23 @@
         ]
     };
 
-    let demand_data = filterByCategory('demand', MW_TO_GW);
-
-    
-    let biomass_data = filterByCategory('Biomass', MW_TO_GW);
-    let gas_data = filterByCategory('Fossil Gas', MW_TO_GW);
-    let coal_data = filterByCategory('Fossil Hard coal', MW_TO_GW);
-    let oil_data = filterByCategory('Fossil Oil', MW_TO_GW);
-    let hydro_data = filterByCategory('Hydro Run-of-river and poundage', MW_TO_GW);
-    let nuclear_data = filterByCategory('Nuclear', MW_TO_GW);
-    console.log(nuclear_data)
-    let solar_data = filterByCategory('Solar', MW_TO_GW);
-    let offshore_wind_data = filterByCategory('Wind Offshore', MW_TO_GW);
-    let onshore_wind_data = filterByCategory('Wind Onshore', MW_TO_GW);
-    let total_wind_data = Object.entries([...offshore_wind_data,...onshore_wind_data].reduce((a, [timestamp, value]) => {
+    let biomass_data = filterByCategory('BIOMASS', MW_TO_GW);
+    let ccgt_data = filterByCategory('CCGT', MW_TO_GW);
+    let ocgt_data = filterByCategory('OCGT', MW_TO_GW);
+    let gas_data = Object.entries([...ccgt_data,...ocgt_data].reduce((a, [timestamp, value]) => {
         a[timestamp] = (a[timestamp] || 0) + value;
         return a;}, {})
         ).map(([timestamp, value]) => [timestamp, value]);
+    let coal_data = filterByCategory('COAL', MW_TO_GW);
+    let oil_data = filterByCategory('OIL', MW_TO_GW);
+    let hydro_data = filterByCategory('NPSHYD', MW_TO_GW);
+    let nuclear_data = filterByCategory('NUCLEAR', MW_TO_GW);
+    let solar_data = filterByCategory('SOLAR', MW_TO_GW);
+    let total_wind_data = filterByCategory('WIND', MW_TO_GW);
+    let other_data = filterByCategory('OTHER', MW_TO_GW);
     let total_generation_data = biomass_data[biomass_data.length-1][1] + gas_data[gas_data.length-1][1] + coal_data[coal_data.length-1][1] + 
     oil_data[oil_data.length-1][1] + hydro_data[hydro_data.length-1][1] + nuclear_data[nuclear_data.length-1][1] + solar_data[solar_data.length-1][1] + 
-    total_wind_data[total_wind_data.length-1][1];
+    total_wind_data[total_wind_data.length-1][1] + other_data[other_data.length-1][1];
     let gen_chart_options = {
         tooltip: {
             trigger: "axis",
@@ -141,7 +138,7 @@
             }
         ],
         legend: {
-            data: ["Biomass", "Gas", "Coal", "Oil", "Hydro", "Nuclear", "Solar", "Wind"]
+            data: ["Biomass", "Gas", "Coal", "Oil", "Hydro", "Nuclear", "Solar", "Wind", "Other"],
         },
         xAxis: {
             type: "time",
@@ -154,6 +151,15 @@
             type: "value",
         },
         series: [
+                        {
+                name: "Other",
+                data: other_data,
+                type: "line",
+                symbol: 'none',
+                smooth: true,
+                stack: 'Total',
+                areaStyle: {}
+            },
             {
                 name: "Coal",
                 data: coal_data,
@@ -246,7 +252,6 @@
         tooltip: {
             trigger: 'item',
             formatter: function (params) {
-                console.log(params);
                 return params.name + ': ' + params.value.toFixed(2).toString() + ' GW (' + params.percent.toFixed(1) + '%)';
             }
         },
@@ -290,27 +295,32 @@
 
     const europeJSON = JSON.parse(europeGeoJSON);
     registerMap('europe', europeJSON);
-    let IEgreenlink = filterByCategory("Ireland (Greenlink)");
-    let IEeastwest = filterByCategory("Ireland(East-West)");
-    let IEinter = IEgreenlink[0][1] + IEeastwest[0][1];
-    let FRIFA = filterByCategory("France(IFA)")
-    let FRIFAtwo = filterByCategory("IFA2 (INTIFA2)")
-    let FReleclink = filterByCategory("Eleclink (INTELEC)")
-    let FRinter = FRIFA[0][1] + FRIFAtwo[0][1] + FReleclink[0][1];
-    let NOnsl = filterByCategory("North Sea Link (INTNSL)")
-    let NOinter = NOnsl[0][1];
-    let DNviking = filterByCategory("Denmark (Viking link)")
-    let DNinter = DNviking[0][1];
-    let NLbritned = filterByCategory("Netherlands(BritNed)")
-    let NLinter = NLbritned[0][1];
-    let BEnemo = filterByCategory("Belgium (Nemolink)");
-    let BEinter = BEnemo[0][1];
+    let IEgreenlink = filterByCategory("INTGRNL");
+    let IEeastwest = filterByCategory("INTEW");
+    let IEmoyle = filterByCategory("INTIRL");
+    let IEinter = IEgreenlink[IEgreenlink.length - 1][1] + IEeastwest[IEeastwest.length - 1][1] + IEmoyle[IEmoyle.length - 1][1];
+    let FRIFA = filterByCategory("INTFR")
+    let FRIFAtwo = filterByCategory("INTIFA2")
+    let FReleclink = filterByCategory("INTELEC")
+    let FRinter = FRIFA[FRIFA.length - 1][1] + FRIFAtwo[FRIFAtwo.length - 1][1] + FReleclink[FReleclink.length - 1][1];
+    let NOnsl = filterByCategory("INTNSL")
+    let NOinter = NOnsl[NOnsl.length - 1][1];
+    let DNviking = filterByCategory("INTVKL")
+    let DNinter = DNviking[DNviking.length - 1][1];
+    let NLbritned = filterByCategory("INTNED")
+    let NLinter = NLbritned[NLbritned.length - 1][1];
+    let BEnemo = filterByCategory("INTNEM");
+    let BEinter = BEnemo[BEnemo.length - 1][1];
     let total_importexport = IEinter + FRinter + NOinter + DNinter + NLinter + BEinter;
 
     let inter_map_options = {
     geo: {
         map: 'europe',
         roam: false,
+        itemStyle: {
+            borderColor: '#403288',
+            borderWidth: 1.0
+        },
         boundingCoords: [
             [0.4, 40],
             [0.5, 64]
@@ -324,6 +334,9 @@
     },
     tooltip: {
         formatter: function (params) {
+            if (params.value === undefined || isNaN(params.value)) {
+                return '';
+            }
                 return params.name + ': ' + (params.value / 1000).toFixed(2).toString() + ' GW';
             }
     },
@@ -335,7 +348,7 @@
         show: false,
         min: -Math.max(FRinter, IEinter, NLinter, NOinter, DNinter, BEinter),
         max: Math.max(FRinter, IEinter, NLinter, NOinter, DNinter, BEinter),
-        inRange: { color: ['#FF4242','#FFFFFF', '#A7FF5C'] }
+        inRange: { color: ['#ff0000','#FFFFFF', '#77ff00'] }
         }
     ],
     series: [
@@ -361,9 +374,6 @@
 <main class="dashboard-container">
     <div class="card info" id="time">
         <p>{now.toLocaleString('en-GB',{timeZone:'Europe/London', }).substring(0,17)}</p>
-    </div>
-    <div class="card info" id="demand">
-        <p>Demand: {demand_data[demand_data.length - 1][1].toFixed(2)} GW at {demand_data[demand_data.length - 1][0].substring(10,16)}</p>
     </div>
     <div class="card info" id="generation">
         <p>Generation: {total_generation_data.toFixed(2)} GW + Imports/Exports: {(total_importexport/1000).toFixed(2)} GW = {(total_generation_data + total_importexport/1000).toFixed(2)} GW</p>
@@ -423,12 +433,8 @@
   grid-column: 1 / 3;
 }
 
-#demand {
-  grid-column: 3 / 5;
-}
-
 #generation {
-    grid-column: 5 / -1;
+    grid-column: 3 / -1;
 }
 
 #generation-pie {

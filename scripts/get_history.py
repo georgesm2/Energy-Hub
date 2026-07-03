@@ -5,7 +5,7 @@ import pandas as pd
 import time
 from datetime import datetime, timedelta, UTC
 
-START_DATE = datetime(2026, 6, 17, 12, 0, 0)
+START_DATE = datetime(2026, 7, 3, 0, 0, 0)
 END_DATE = datetime.utcnow()
 
 DOWNSAMPLE_MONTH_CUTOFF = pd.Timestamp.now('UTC').tz_localize(None) - pd.Timedelta(days=30)
@@ -18,8 +18,8 @@ API_CONFIGS = {
     "market_price": {
         "url": "https://data.elexon.co.uk/bmrs/api/v1/balancing/pricing/market-index",
         "days_per_request": 7,
+        "needs_unpacking": True,
         "json_data_key": "data",
-        "is_wide_format": False,
         "columns_to_keep": ["startTime", "price"],
         "column_rename_map": {"startTime": "timestamp", "price": "value"},
         "category_label": "market_price",
@@ -33,8 +33,8 @@ API_CONFIGS = {
     "octopus_agile": {
         "url": "https://api.octopus.energy/v1/products/AGILE-24-10-01/electricity-tariffs/E-1R-AGILE-24-10-01-A/standard-unit-rates/",
         "days_per_request": 2,
+        "needs_unpacking": True,
         "json_data_key": "results",
-        "is_wide_format": False,
         "columns_to_keep": ["valid_from", "value_inc_vat"],
         "column_rename_map": {"valid_from": "timestamp", "value_inc_vat": "value"},
         "category_label": "octopus_agile",
@@ -45,43 +45,31 @@ API_CONFIGS = {
         }
     },
     "generation": {
-        "url": "https://data.elexon.co.uk/bmrs/api/v1/generation/actual/per-type",
-        "days_per_request": 7,
-        "json_data_key": "data",
-        "is_wide_format": True,
-        "index_column": "startTime",
-        "columns_to_keep": ["startTime", "psrType", "quantity"],
-        "column_rename_map": {"startTime": "timestamp", "psrType": "category", "quantity": "value"},
+        "url": "https://data.elexon.co.uk/bmrs/api/v1/datasets/FUELINST/stream",
+        "days_per_request": 1,
+        "needs_unpacking": False,
+        "index_column": "pub",
+        "columns_to_keep": ["publishTime", "fuelType", "generation"],
+        "column_rename_map": {"publishTime": "timestamp", "fuelType": "category", "generation": "value"},
         "record_path": "data",
-        "param_builder": lambda start, end: {
-            "from": start.strftime("%Y-%m-%dT%H:%MZ"),
-            "to": end.strftime("%Y-%m-%dT%H:%MZ"),
-        }
-    },
-    "demand": {
-        "url": "https://data.elexon.co.uk/bmrs/api/v1/demand/actual/total",
-        "days_per_request": 7,
-        "json_data_key": "data",
-        "index_column": "startTime",
-        "columns_to_keep": ["startTime", "quantity"],
-        "column_rename_map": {"startTime": "timestamp", "quantity": "value"},
-        "category_label": "demand",
-        "param_builder": lambda start, end: {
-            "from": start.strftime("%Y-%m-%dT%H:%MZ"),
-            "to": end.strftime("%Y-%m-%dT%H:%MZ"),
-        }
-    },
-    "interconnectors": {
-        "url": "https://data.elexon.co.uk/bmrs/api/v1/generation/outturn/interconnectors",
-        "days_per_request": 7,
-        "json_data_key": "data",
-        "is_wide_format": False,
-        "index_column": "startTime",
-        "columns_to_keep": ["startTime","interconnectorName","generation"],
-        "column_rename_map": {"startTime": "timestamp", "interconnectorName": "category", "generation": "value"},
         "param_builder": lambda start, end: {
             "publishDateTimeFrom": start.strftime("%Y-%m-%dT%H:%MZ"),
             "publishDateTimeTo": end.strftime("%Y-%m-%dT%H:%MZ"),
+        }
+    },
+    "solar": {
+        "url": "https://api.pvlive.uk/pvlive/api/v4/gsp/0",
+        "days_per_request": 2,
+        "needs_unpacking": True,
+        "json_data_key": "data",
+        "index_column": "gsp_id",
+        "columns_to_keep": [1,2],
+        "column_rename_map": {1: "timestamp", 2: "value"},
+        "record_path": "data",
+        "category_label": "SOLAR",
+        "param_builder": lambda start, end: {
+            "start": start.strftime("%Y-%m-%dT%H:%MZ"),
+            "end": end.strftime("%Y-%m-%dT%H:%MZ"),
         }
     }
 }
@@ -92,7 +80,6 @@ def fetch_historical_batches(config):
 
     url = config["url"]
     days_step = config["days_per_request"]
-    data_key = config["json_data_key"]
     columns_to_keep = config["columns_to_keep"]
     
     # move window through dates per API call
@@ -109,16 +96,12 @@ def fetch_historical_batches(config):
             response = requests.get(url, params=params)
             response.raise_for_status() 
             data = response.json()
-            if config.get("is_wide_format"):
-                df = pd.json_normalize(
-                    data.get(config["json_data_key"], []),
-                    record_path=[config["record_path"]], 
-                    meta=[config["index_column"]]
-                )
-            else:
-                raw_rows = data.get(data_key, [])
-                df = pd.DataFrame(raw_rows)
 
+            if config["needs_unpacking"]:
+                raw_rows = data.get(config["json_data_key"], [])
+            else:
+                raw_rows = data
+            df = pd.DataFrame(raw_rows)
             if not df.empty:
                 df = df[columns_to_keep]
                 all_data_frames.append(df)
@@ -170,6 +153,8 @@ def process_data(df, config):
         processed_blocks.append(mid_data)
 
     if not modern_data.empty:
+        modern_data["timestamp"] = modern_data["timestamp"].dt.floor("30min")
+        modern_data = modern_data.groupby(["timestamp", "category"])["value"].mean().reset_index()
         processed_blocks.append(modern_data)
 
     df = pd.concat(processed_blocks, ignore_index=True)
@@ -187,7 +172,6 @@ def push_to_d1(df,config):
     temp_file = "batch_insert.sql"
 
     print("Preparing database upload")
-
     sql_statements = []
     for _, row in df.iterrows():
         statement = f"('{row['timestamp']}','{row['category']}',{row['value']})"
@@ -199,7 +183,7 @@ def push_to_d1(df,config):
 
     for i in range(0, total_rows, chunk_size):
         batch = sql_statements[i:i+chunk_size]
-        combined_sql = f"INSERT OR IGNORE INTO energy_metrics (timestamp, category, value) VALUES \n" + ",\n".join(batch) + ";"
+        combined_sql = f"INSERT INTO energy_metrics (timestamp, category, value) VALUES \n" + ",\n".join(batch) + "ON CONFLICT(timestamp, category) DO UPDATE SET value = EXCLUDED.value WHERE energy_metrics.value IS NOT EXCLUDED.value;"
         with open(temp_file, "w") as f:
             f.write(combined_sql)
 

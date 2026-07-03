@@ -1,8 +1,8 @@
 body {
   font-family: system-ui, -apple-system, sans-serif;
-  line-height: 1.6;
+  line-height: 1.1;
   color: #333;
-  padding: 1rem;
+  padding: 0rem;
   background-color: #f4f4f9;
 }
 
@@ -28,7 +28,7 @@ img {
 
 .navbar {
   display: flex;
-  gap: 3rem;
+  gap: 4rem;
   align-items: center;
   margin-bottom: 0rem;
   padding: 0 1.5rem 0 1.5rem;
