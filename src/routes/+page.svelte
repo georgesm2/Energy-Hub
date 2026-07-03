@@ -138,7 +138,7 @@
             }
         ],
         legend: {
-            data: ["Biomass", "Gas", "Coal", "Oil", "Hydro", "Nuclear", "Solar", "Wind", "Other"],
+            data: ["Biomass", "Coal", "Gas", "Hydro",  "Nuclear", "Oil", "Solar", "Wind", "Other"],
         },
         xAxis: {
             type: "time",
@@ -151,7 +151,7 @@
             type: "value",
         },
         series: [
-                        {
+            {
                 name: "Other",
                 data: other_data,
                 type: "line",
@@ -256,6 +256,7 @@
             }
         },
         legend: {
+            data: ["Biomass", "Coal", "Gas", "Hydro",  "Nuclear", "Oil", "Solar", "Wind", "Other"],
         },
         series: [
             {
@@ -280,12 +281,13 @@
                     show: false
                 },
                 data: [
+                    { value: other_data[other_data.length - 1][1], name: 'Other' },
                     { value: coal_data[coal_data.length - 1][1], name: 'Coal' },
                     { value: oil_data[oil_data.length - 1][1], name: 'Oil' },
                     { value: biomass_data[biomass_data.length - 1][1], name: 'Biomass' },
                     { value: nuclear_data[nuclear_data.length - 1][1], name: 'Nuclear' },
                     { value: gas_data[gas_data.length - 1][1], name: 'Gas' },
-                    { value: hydro_data[hydro_data.length - 1][1], name: 'Hydro'},
+                    { value: hydro_data[hydro_data.length - 1][1], name: 'Hydro'},    
                     { value: solar_data[solar_data.length - 1][1], name: 'Solar' },
                     { value: total_wind_data[total_wind_data.length - 1][1], name: 'Wind' },
                 ]
