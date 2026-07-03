@@ -20,8 +20,8 @@ API_CONFIGS = {
     "market_price": {
         "url": "https://data.elexon.co.uk/bmrs/api/v1/balancing/pricing/market-index",
         "days_per_request": 7,
+        "needs_unpacking": True,
         "json_data_key": "data",
-        "is_wide_format": False,
         "columns_to_keep": ["startTime", "price"],
         "column_rename_map": {"startTime": "timestamp", "price": "value"},
         "category_label": "market_price",
@@ -35,8 +35,8 @@ API_CONFIGS = {
     "octopus_agile": {
         "url": "https://api.octopus.energy/v1/products/AGILE-24-10-01/electricity-tariffs/E-1R-AGILE-24-10-01-A/standard-unit-rates/",
         "days_per_request": 2,
+        "needs_unpacking": True,
         "json_data_key": "results",
-        "is_wide_format": False,
         "columns_to_keep": ["valid_from", "value_inc_vat"],
         "column_rename_map": {"valid_from": "timestamp", "value_inc_vat": "value"},
         "category_label": "octopus_agile",
