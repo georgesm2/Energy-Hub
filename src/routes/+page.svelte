@@ -114,6 +114,9 @@
             formatter: function (params) {
                 let text = params[0].axisValueLabel + "<br>";
                 params.forEach(p => {
+                    if (p.value[1] === 0) {
+                        return;
+                    }
                     text += `${p.marker} ${p.seriesName}: ${p.value[1].toFixed(2)} GW<br>`;
                 });
                 return text;
@@ -487,22 +490,13 @@
   
 }
 
-@media (max-width: 1050px) {
+@media (max-width: 850px) {
     #time {
-        grid-column: 1 / 5;
-    }
-    
-    #demand {
-        grid-column: 5 / -1;
+        grid-column: 1 / -1;
     }
     #generation {
         grid-column: 1 / -1;
-    
     }
-  
-}
-
-@media (max-width: 850px) {
     #interconnector-map {
       grid-column: 1 / 5;
     }
