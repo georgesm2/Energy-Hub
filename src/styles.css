@@ -38,5 +38,18 @@ img {
   max-width: 1600px;
   margin: 0 auto;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+
+  .nav-links {
+    display: flex;
+    gap: 3rem;
+  }
 }
 
+@media (max-width: 768px) {
+  .navbar {
+    flex-direction: column;
+    gap: 0rem;
+    padding-bottom: 1rem;
+    font-size: 0.9rem;
+  }
+}

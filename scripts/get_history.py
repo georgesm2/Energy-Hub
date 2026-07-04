@@ -5,7 +5,7 @@ import pandas as pd
 import time
 from datetime import datetime, timedelta, UTC
 
-START_DATE = datetime(2026, 7, 3, 0, 0, 0)
+START_DATE = datetime(2026, 6, 1, 0, 0, 0)
 END_DATE = datetime.utcnow()
 
 DOWNSAMPLE_MONTH_CUTOFF = pd.Timestamp.now('UTC').tz_localize(None) - pd.Timedelta(days=30)
@@ -24,6 +24,7 @@ API_CONFIGS = {
         "column_rename_map": {"startTime": "timestamp", "price": "value"},
         "category_label": "market_price",
         "conversion": 0.001,
+        "params_in_url": False,
         "param_builder": lambda start, end: {
             "from": start.strftime("%Y-%m-%dT%H:%MZ"),
             "to": end.strftime("%Y-%m-%dT%H:%MZ"),
@@ -39,6 +40,7 @@ API_CONFIGS = {
         "column_rename_map": {"valid_from": "timestamp", "value_inc_vat": "value"},
         "category_label": "octopus_agile",
         "conversion": 0.01,
+        "params_in_url": False,
         "param_builder": lambda start, end: {
             "period_from": start.strftime("%Y-%m-%dT%H:%MZ"),
             "period_to": end.strftime("%Y-%m-%dT%H:%MZ"),
@@ -52,6 +54,7 @@ API_CONFIGS = {
         "columns_to_keep": ["publishTime", "fuelType", "generation"],
         "column_rename_map": {"publishTime": "timestamp", "fuelType": "category", "generation": "value"},
         "record_path": "data",
+        "params_in_url": False,
         "param_builder": lambda start, end: {
             "publishDateTimeFrom": start.strftime("%Y-%m-%dT%H:%MZ"),
             "publishDateTimeTo": end.strftime("%Y-%m-%dT%H:%MZ"),
@@ -67,9 +70,24 @@ API_CONFIGS = {
         "column_rename_map": {1: "timestamp", 2: "value"},
         "record_path": "data",
         "category_label": "SOLAR",
+        "params_in_url": False,
         "param_builder": lambda start, end: {
             "start": start.strftime("%Y-%m-%dT%H:%MZ"),
             "end": end.strftime("%Y-%m-%dT%H:%MZ"),
+        }
+    },
+    "carbon_intensity": {
+        "url": "https://api.carbonintensity.org.uk/intensity/{from}/{to}",
+        "days_per_request": 4,
+        "needs_unpacking": True,
+        "json_data_key": "data",
+        "columns_to_keep": ["to", "intensity.actual"],
+        "column_rename_map": {"to": "timestamp", "intensity.actual": "value"},
+        "category_label": "carbon_intensity",
+        "params_in_url": True,
+        "param_builder": lambda start, end: {
+            "from": start.strftime("%Y-%m-%dT%H:%MZ"),
+            "to": end.strftime("%Y-%m-%dT%H:%MZ")
         }
     }
 }
@@ -89,9 +107,9 @@ def fetch_historical_batches(config):
             end = END_DATE
 
         print(f"Fetching data from {start} to {end}")
-
         params = config["param_builder"](start, end)
-        
+        if config["params_in_url"]:
+            url = config["url"].format(**params)
         try:
             response = requests.get(url, params=params)
             response.raise_for_status() 
@@ -101,7 +119,9 @@ def fetch_historical_batches(config):
                 raw_rows = data.get(config["json_data_key"], [])
             else:
                 raw_rows = data
-            df = pd.DataFrame(raw_rows)
+            
+            df = pd.json_normalize(raw_rows)
+
             if not df.empty:
                 df = df[columns_to_keep]
                 all_data_frames.append(df)
@@ -112,7 +132,7 @@ def fetch_historical_batches(config):
 
         time.sleep(0.5)
         start = end
-
+    
     if all_data_frames:
         combined_df = pd.concat(all_data_frames, ignore_index=True)
         return combined_df

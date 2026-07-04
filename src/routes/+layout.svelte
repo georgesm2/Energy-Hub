@@ -14,8 +14,10 @@
 
 <nav class="navbar">
 	<h1>UK Energy Dashboard</h1>
-	<a href={resolve('/')}>home</a>
-	<a href={resolve('/about')}>about</a>
+	<div class="nav-links">
+		<a href={resolve('/')}>home</a>
+		<a href={resolve('/about')}>about</a>
+	</div>
 </nav>
 
 {@render children()}

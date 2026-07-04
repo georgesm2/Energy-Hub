@@ -13,7 +13,7 @@ export async function load({ platform }) {
             .prepare(`
                 SELECT timestamp, category, value 
                 FROM energy_metrics 
-                WHERE timestamp >= datetime('now','-5 day')
+                WHERE timestamp >= datetime('now','-10 day') OR category = 'price_cap'
                 ORDER BY timestamp ASC 
             `)
             .all();

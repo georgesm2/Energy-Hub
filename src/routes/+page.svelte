@@ -34,14 +34,34 @@
 
     let market_price_data = filterByCategory('market_price');
     let agile_price_data = filterByCategory('octopus_agile');
+    // make sure that the two arrays are the same length as octopus agile is often available earlier than market price
+    if (market_price_data.length > agile_price_data.length) {
+        agile_price_data.push([market_price_data[market_price_data.length - 1][0], agile_price_data[agile_price_data.length - 1][1]]);
+    } else if (agile_price_data.length > market_price_data.length) {
+        market_price_data.push([agile_price_data[agile_price_data.length - 1][0], market_price_data[market_price_data.length - 1][1]]);
+    }
+    let price_cap_data = filterByCategory('price_cap');
+    price_cap_data.push([market_price_data[market_price_data.length - 1][0], price_cap_data[price_cap_data.length - 1][1]]);
+    // change price cap data to only include the period being plotted
+    const start_timestamp = market_price_data[0][0];
+    const past_price_cap_data = price_cap_data.filter(a => a[0] < start_timestamp);
+    const current_price_cap_data = price_cap_data.filter(a => a[0] >= start_timestamp);
+    const baseline_cap = past_price_cap_data[past_price_cap_data.length - 1];
+    baseline_cap[0] = start_timestamp;
+    price_cap_data = [baseline_cap, ...current_price_cap_data];
     let price_chart_options = {
         tooltip: {
             trigger: "axis",
             formatter: function (params) {
                 let text = params[0].axisValueLabel + "<br>";
+                let currentTime = new Date(params[0].value[0]);
                 params.forEach(p => {
+                    if (p.seriesName === "Ofgem Price Cap") {
+                        return;
+                    }
                     text += `${p.marker} ${p.seriesName}: ${p.value[1].toFixed(3)} £/kWh<br>`;
                 });
+                text += `${`<span style="display:inline-block;margin-right:4px;border-radius:10px;width:10px;height:10px;background-color:#FFDB5C;"></span>`} Price Cap: ${price_cap_data.filter(a => new Date(a[0]) <= currentTime).pop()[1].toFixed(3)} £/kWh`;
                 return text;
             }
         },
@@ -54,6 +74,7 @@
         dataZoom: [
             {
                 type: 'inside',
+                filterMode: 'none',
                 start: 90,
                 end: 100
             },
@@ -63,7 +84,7 @@
             }
         ],
         legend: {
-            data: ["Wholesale Market", "Octopus Agile"],
+            data: ["Wholesale Market", "Octopus Agile", "Ofgem Price Cap"],
         },
         xAxis: {
             type: "time",
@@ -87,6 +108,12 @@
                 data: agile_price_data,
                 type: "line",
                 smooth: true,
+            },
+            {
+                name: "Ofgem Price Cap",
+                data: price_cap_data,
+                type: "line",
+                step: 'end',
             }
         ]
     };
@@ -373,6 +400,59 @@
     ]
     };
 
+    let carbon_intensity_data = filterByCategory('carbon_intensity');
+    let carbon_intensity_options = {
+        tooltip: {
+            trigger: "axis",
+            formatter: function (params) {
+                let text = params[0].axisValueLabel + "<br>";
+                params.forEach(p => {
+                    text += `${p.marker} ${p.seriesName}: ${p.value[1].toFixed(2)} gCO2/kWh<br>`;
+                });
+                return text;
+            }
+        },
+        toolbox: {
+            feature: {
+            restore: {},
+            saveAsImage: {}
+            }
+        },
+        dataZoom: [
+            {
+                type: 'inside',
+                filterMode: 'none',
+                start: 90,
+                end: 100
+            },
+            {
+                start: 90,
+                end: 100
+            }
+        ],
+        legend: {
+            data: ["Carbon Intensity"],
+        },
+        xAxis: {
+            type: "time",
+            axisLabel: {
+                hideOverlap: true,
+                rotate: 45
+            }
+        },
+        yAxis: {
+            type: "value",
+        },
+        series: [
+            {
+                name: "Carbon Intensity",
+                data: carbon_intensity_data,
+                type: "line",
+                smooth: true,
+            }
+        ]
+    };
+
 
 </script>
 
@@ -405,6 +485,12 @@
         <h3>Electricity Price £ / kWh</h3>
         <div class="chart-area">
             <Chart {init} options={price_chart_options} />
+        </div>
+    </div>
+    <div class="card chart" id="carbon-intensity-chart">
+        <h3>Carbon Intensity gCO2 / kWh</h3>
+        <div class="chart-area">
+            <Chart {init} options={carbon_intensity_options} />
         </div>
     </div>
 </main>
@@ -457,6 +543,11 @@
 #interconnector-map {
   grid-column: 7 / -1;
 }
+
+#carbon-intensity-chart {
+  grid-column: 4 / 7;
+}
+
 
 .chart {
   min-width: 0;
