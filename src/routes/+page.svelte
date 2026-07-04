@@ -578,6 +578,10 @@
   #price-chart {
     grid-column: 4 / -1;
   }
+
+  #carbon-intensity-chart {
+    grid-column: 1 / 5;
+  }
   
 }
 
@@ -602,6 +606,10 @@
   
     #price-chart {
       grid-column: 5 / -1;
+    }
+
+    #carbon-intensity-chart {
+        grid-column: 1 / -1;
     }
   
 }
