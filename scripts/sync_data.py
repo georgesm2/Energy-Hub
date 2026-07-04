@@ -122,7 +122,13 @@ def fetch_historical_batches(config, start):
                 raw_rows = data.get(config["json_data_key"], [])
             else:
                 raw_rows = data
-            df = pd.json_normalize(raw_rows)
+            
+            try:
+                df = pd.json_normalize(raw_rows)
+            except Exception as e:
+                print(f"Error normalizing JSON data: {e}")
+                df = pd.DataFrame(raw_rows)  # Create an empty DataFrame if normalization fails
+
             if not df.empty:
                 df = df[columns_to_keep]
                 all_data_frames.append(df)
