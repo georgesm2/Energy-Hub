@@ -30,6 +30,15 @@
         }).replace(/^(\d{2})\/(\d{2})\/(\d{4}),\s*/, '$3-$2-$1 ');
     }
 
+    function sumMultipleArrays(firstArray, ...otherArrays) {
+        return firstArray.map(([key, value], index) => {
+            const total = otherArrays.reduce((sum, currentArray) => {
+                return sum + currentArray[index][1];
+            }, value);
+            return [key, total];
+        })
+    }
+
     const filterByCategory = (cat, conv=1) => data?.metrics?.filter(a => a.category === cat).map(a => [utcToUK(a.timestamp), a.value / conv]);
 
     let market_price_data = filterByCategory('market_price');
@@ -327,23 +336,29 @@
 
     const europeJSON = JSON.parse(europeGeoJSON);
     registerMap('europe', europeJSON);
-    let IEgreenlink = filterByCategory("INTGRNL");
-    let IEeastwest = filterByCategory("INTEW");
-    let IEmoyle = filterByCategory("INTIRL");
-    let IEinter = IEgreenlink[IEgreenlink.length - 1][1] + IEeastwest[IEeastwest.length - 1][1] + IEmoyle[IEmoyle.length - 1][1];
-    let FRIFA = filterByCategory("INTFR")
-    let FRIFAtwo = filterByCategory("INTIFA2")
-    let FReleclink = filterByCategory("INTELEC")
-    let FRinter = FRIFA[FRIFA.length - 1][1] + FRIFAtwo[FRIFAtwo.length - 1][1] + FReleclink[FReleclink.length - 1][1];
-    let NOnsl = filterByCategory("INTNSL")
-    let NOinter = NOnsl[NOnsl.length - 1][1];
-    let DNviking = filterByCategory("INTVKL")
-    let DNinter = DNviking[DNviking.length - 1][1];
-    let NLbritned = filterByCategory("INTNED")
-    let NLinter = NLbritned[NLbritned.length - 1][1];
-    let BEnemo = filterByCategory("INTNEM");
-    let BEinter = BEnemo[BEnemo.length - 1][1];
-    let total_importexport = IEinter + FRinter + NOinter + DNinter + NLinter + BEinter;
+    let IEgreenlink = filterByCategory("INTGRNL", MW_TO_GW);
+    let IEeastwest = filterByCategory("INTEW", MW_TO_GW);
+    let IEmoyle = filterByCategory("INTIRL", MW_TO_GW);
+    let IEinter = sumMultipleArrays(IEgreenlink, IEeastwest, IEmoyle)
+    let IEnow = IEinter[IEinter.length - 1][1];
+    let FRIFA = filterByCategory("INTFR", MW_TO_GW)
+    let FRIFAtwo = filterByCategory("INTIFA2", MW_TO_GW)
+    let FReleclink = filterByCategory("INTELEC", MW_TO_GW)
+    let FRinter = sumMultipleArrays(FRIFA, FRIFAtwo, FReleclink)
+    let FRnow = FRinter[FRinter.length - 1][1];
+    let NOnsl = filterByCategory("INTNSL", MW_TO_GW)
+    let NOinter = NOnsl
+    let NOnow = NOinter[NOinter.length - 1][1];
+    let DNviking = filterByCategory("INTVKL", MW_TO_GW)
+    let DNinter = DNviking
+    let DNnow = DNinter[DNinter.length - 1][1];
+    let NLbritned = filterByCategory("INTNED", MW_TO_GW)
+    let NLinter = NLbritned
+    let NLnow = NLinter[NLinter.length - 1][1];
+    let BEnemo = filterByCategory("INTNEM", MW_TO_GW);
+    let BEinter = BEnemo
+    let BEnow = BEinter[BEinter.length - 1][1];
+    let total_importexport = IEnow + FRnow + NOnow + DNnow + NLnow + BEnow;
 
     let inter_map_options = {
     geo: {
@@ -369,7 +384,7 @@
             if (params.value === undefined || isNaN(params.value)) {
                 return '';
             }
-                return params.name + ': ' + (params.value / 1000).toFixed(2).toString() + ' GW';
+                return params.name + ': ' + (params.value).toFixed(2).toString() + ' GW';
             }
     },
     visualMap: [
@@ -378,8 +393,8 @@
         left: 0,
         bottom: 0,
         show: false,
-        min: -Math.max(FRinter, IEinter, NLinter, NOinter, DNinter, BEinter),
-        max: Math.max(FRinter, IEinter, NLinter, NOinter, DNinter, BEinter),
+        min: -Math.max(FRnow, IEnow, NLnow, NOnow, DNnow, BEnow),
+        max: Math.max(FRnow, IEnow, NLnow, NOnow, DNnow, BEnow),
         inRange: { color: ['#ff0000','#FFFFFF', '#77ff00'] }
         }
     ],
@@ -389,16 +404,107 @@
         geoIndex: 0,
         name: 'Transfer',
         data: [
-            { name: 'France', value: FRinter },
-            { name: 'Ireland', value: IEinter },
-            { name: 'Netherlands', value: NLinter },
-            { name: 'Norway', value: NOinter },
-            { name: 'Denmark', value: DNinter },
-            { name: 'Belgium', value: BEinter }
+            { name: 'France', value: FRnow },
+            { name: 'Ireland', value: IEnow },
+            { name: 'Netherlands', value: NLnow },
+            { name: 'Norway', value: NOnow },
+            { name: 'Denmark', value: DNnow },
+            { name: 'Belgium', value: BEnow }
         ]
         }
     ]
     };
+
+    let inter_data_options = {
+        tooltip: {
+            trigger: "axis",
+            formatter: function (params) {
+                let text = params[0].axisValueLabel + "<br>";
+                params.forEach(p => {
+                    if (p.value[1] === 0) {
+                        return;
+                    }
+                    text += `${p.marker} ${p.seriesName}: ${p.value[1].toFixed(2)} GW<br>`;
+                });
+                return text;
+            }
+        },
+        toolbox: {
+            feature: {
+            restore: {},
+            saveAsImage: {}
+            }
+        },
+        dataZoom: [
+            {
+                type: 'inside',
+                start: 90,
+                zoomLock: true, 
+                end: 100
+            },
+            {
+                start: 90,
+                end: 100
+            }
+        ],
+        legend: {
+            data: ["Ireland", "France", "Norway", "Denmark", "Netherlands", "Belgium"],
+        },
+        xAxis: {
+            type: "time",
+            axisLabel: {
+                hideOverlap: true,
+                rotate: 45
+            }
+        },
+        yAxis: {
+            type: "value",
+        },
+        series: [
+            {
+                name: "Ireland",
+                data: IEinter,
+                type: "line",
+                symbol: 'none',
+                smooth: true,
+            },
+            {
+                name: "France",
+                data: FRinter,
+                type: "line",
+                symbol: 'none',
+                smooth: true,
+            },
+            {
+                name: "Norway",
+                data: NOinter,
+                type: "line",
+                symbol: 'none',
+                smooth: true,
+            },
+            {
+                name: "Denmark",
+                data: DNinter,
+                type: "line",
+                symbol: 'none',
+                smooth: true,
+            },
+            {
+                name: "Netherlands",
+                data: NLinter,
+                type: "line",
+                symbol: 'none',
+                smooth: true,
+            },
+            {
+                name: "Belgium",
+                data: BEinter,
+                type: "line",
+                symbol: 'none',
+                smooth: true,
+            }
+        ]
+    }; 
 
     let carbon_intensity_data = filterByCategory('carbon_intensity');
     let carbon_intensity_options = {
@@ -493,6 +599,12 @@
             <Chart {init} options={carbon_intensity_options} />
         </div>
     </div>
+    <div class="card chart" id="interconnector-data-chart">
+        <h3>Interconnector Data / GW</h3>
+        <div class="chart-area">
+            <Chart {init} options={inter_data_options} />
+        </div>
+    </div>
 </main>
 
 <style>
@@ -545,10 +657,13 @@
 }
 
 #carbon-intensity-chart {
-  grid-column: 4 / 7;
+  grid-column: 4 / 6;
+  
 }
 
-
+#interconnector-data-chart {
+  grid-column: 6 / -1;
+}
 .chart {
   min-width: 0;
   box-sizing: border-box;
@@ -582,6 +697,10 @@
   #carbon-intensity-chart {
     grid-column: 1 / 5;
   }
+
+  #interconnector-data-chart {
+    grid-column: 5 / -1;
+  }
   
 }
 
@@ -609,6 +728,10 @@
     }
 
     #carbon-intensity-chart {
+        grid-column: 1 / -1;
+    }
+
+    #interconnector-data-chart {
         grid-column: 1 / -1;
     }
   
