@@ -2,13 +2,13 @@
     import { Chart } from 'svelte-echarts';
     import { onMount } from 'svelte';
     import { init, use, registerMap } from 'echarts/core';
-    import { LineChart, PieChart, MapChart } from 'echarts/charts';
+    import { LineChart,LinesChart, PieChart, MapChart } from 'echarts/charts';
     import { GraphicComponent, ToolboxComponent, DataZoomComponent, GridComponent, GeoComponent, VisualMapComponent, TooltipComponent, LegendComponent } from 'echarts/components';
     import { CanvasRenderer } from 'echarts/renderers';
     import europeGeoJSON from '$lib/assets/europe.geojson?raw';
     
     // now with tree-shaking
-    use([LineChart, PieChart,MapChart, ToolboxComponent, DataZoomComponent, GraphicComponent, GridComponent, CanvasRenderer, GeoComponent, VisualMapComponent, TooltipComponent, LegendComponent])
+    use([LineChart, LinesChart, PieChart, MapChart, ToolboxComponent, DataZoomComponent, GraphicComponent, GridComponent, CanvasRenderer, GeoComponent, VisualMapComponent, TooltipComponent, LegendComponent])
 
     let { data } = $props(); 
     let now = new Date();
@@ -37,6 +37,10 @@
             }, value);
             return [key, total];
         })
+    }
+
+    function coordsOrder(ukCoord, otherCoord, value) {
+        return value > 0 ? [otherCoord, ukCoord] : [ukCoord, otherCoord];        
     }
 
     const filterByCategory = (cat, conv=1) => data?.metrics?.filter(a => a.category === cat).map(a => [utcToUK(a.timestamp), a.value / conv]);
@@ -336,6 +340,7 @@
 
     const europeJSON = JSON.parse(europeGeoJSON);
     registerMap('europe', europeJSON);
+
     let IEgreenlink = filterByCategory("INTGRNL", MW_TO_GW);
     let IEeastwest = filterByCategory("INTEW", MW_TO_GW);
     let IEmoyle = filterByCategory("INTIRL", MW_TO_GW);
@@ -359,38 +364,45 @@
     let BEinter = BEnemo
     let BEnow = BEinter[BEinter.length - 1][1];
     let total_importexport = IEnow + FRnow + NOnow + DNnow + NLnow + BEnow;
+    const dashArray = [10, 1];
 
-    let inter_map_options = {
+    let inter_map_options = $state({
     geo: {
         map: 'europe',
-        roam: false,
+        roam: true,
         itemStyle: {
             borderColor: '#403288',
             borderWidth: 1.0
         },
         boundingCoords: [
-            [0.4, 40],
-            [0.5, 64]
+            [0.4, 44],
+            [0.5, 61]
         ],
-        layoutCenter: ['50%','50%'],
-        layoutsize: 800,
+        layoutCenter: ['55%','55%'],
         aspectScale: 0.9,        // < 1 compresses vertically, > 1 horizontally
         nameProperty: 'NAME',
         label: { show: false },
-        emphasis: { label: { show: false } }
+        emphasis: { disabled: true, label: { show: false } },
+        select: { disabled: true}
     },
     tooltip: {
+        trigger: 'item',
         formatter: function (params) {
+            console.log(params)
+            if (params.seriesType === 'lines') {
+                return `<b>${params.data.name}:</b> ${params.value.toFixed(2)} GW<br/>Capacity: ${params.data.capacity} GW`;
+            }
             if (params.value === undefined || isNaN(params.value)) {
                 return '';
             }
-                return params.name + ': ' + (params.value).toFixed(2).toString() + ' GW';
-            }
+                return `<b>${params.name}</b><br/> ${(params.value).toFixed(2)} GW`;
+        }
     },
     visualMap: [
         {
         orient: 'horizontal',
         left: 0,
+        seriesIndex: 0,
         bottom: 0,
         show: false,
         min: -Math.max(FRnow, IEnow, NLnow, NOnow, DNnow, BEnow),
@@ -400,20 +412,104 @@
     ],
     series: [
         {
-        type: 'map',
-        geoIndex: 0,
-        name: 'Transfer',
-        data: [
-            { name: 'France', value: FRnow },
-            { name: 'Ireland', value: IEnow },
-            { name: 'Netherlands', value: NLnow },
-            { name: 'Norway', value: NOnow },
-            { name: 'Denmark', value: DNnow },
-            { name: 'Belgium', value: BEnow }
-        ]
+            type: 'map',
+            geoIndex: 0,
+            name: 'Transfer',
+            data: [
+                { name: 'France', value: FRnow },
+                { name: 'Ireland', value: IEnow },
+                { name: 'Netherlands', value: NLnow },
+                { name: 'Norway', value: NOnow },
+                { name: 'Denmark', value: DNnow },
+                { name: 'Belgium', value: BEnow }
+            ],
+            select: {
+                disabled: true
+            }
+        },
+        {
+            type: 'lines',
+            coordinateSystem: 'geo',
+            silent: false,
+            data: [
+                {
+                    name: 'East-West',
+                    capacity: 0.5,
+                    value: IEeastwest[IEeastwest.length - 1][1],
+                    coords: coordsOrder([-3.072778, 53.227222],[-6.5675, 53.471111], IEeastwest[IEeastwest.length - 1][1])
+                },
+                {
+                    name: 'Greenlink',
+                    capacity: 0.5,
+                    value: IEgreenlink[IEgreenlink.length - 1][1],
+                    coords: coordsOrder([-4.988, 51.683], [-6.991, 52.281], IEgreenlink[IEgreenlink.length - 1][1])
+                },
+                {
+                    name: 'Moyle',
+                    capacity: 0.5,
+                    value: IEmoyle[IEmoyle.length - 1][1],
+                    coords: coordsOrder([-4.980556, 55.069444],[-5.769722, 54.842778], IEmoyle[IEmoyle.length - 1][1])
+                },
+                {
+                    name: 'IFA',
+                    capacity: 2.0,
+                    value: FRIFA[FRIFA.length - 1][1],
+                    coords: coordsOrder([0.947222, 50.915],[1.784722, 50.903056], FRIFA[FRIFA.length - 1][1])
+                },
+                {
+                    name: 'IFA2',
+                    capacity: 1.0,
+                    value: FRIFAtwo[FRIFAtwo.length - 1][1],
+                    coords: coordsOrder([-1.194,50.818],[-0.262,49.1108], FRIFAtwo[FRIFAtwo.length - 1][1])
+                },
+                {
+                    name: 'Eleclink',
+                    capacity: 1.0,
+                    value: FReleclink[FReleclink.length - 1][1],
+                    coords: coordsOrder([1.1447,51.0984],[1.7806,50.9202], FReleclink[FReleclink.length - 1][1])
+                },
+                {
+                    name: 'North Sea Link',
+                    capacity: 1.4,
+                    value: NOnsl[NOnsl.length - 1][1],
+                    coords: coordsOrder([-1.5183,55.1439],[6.6722,59.4844], NOnsl[NOnsl.length - 1][1])
+                },
+                {
+                    name: 'Viking Link',
+                    capacity: 1.4,
+                    value: DNviking[DNviking.length - 1][1],
+                    coords: coordsOrder([-0.220556,52.930278],[8.709722,55.523056], DNviking[DNviking.length - 1][1])
+                },
+                {
+                    name: 'Britned',
+                    capacity: 1.0,
+                    value: NLbritned[NLbritned.length - 1][1],
+                    coords: coordsOrder([0.716667,51.44],[4.021389,51.9575], NLbritned[NLbritned.length - 1][1])
+                },
+                {
+                    name: 'Nemo',
+                    capacity: 1.0,
+                    value: BEnemo[BEnemo.length - 1][1],
+                    coords: coordsOrder([1.3464,51.3072],[3.21,51.265], BEnemo[BEnemo.length - 1][1])
+                }
+            ],
+            lineStyle: {
+                color: 'black',
+                type: [5, 5],
+                width: 3,
+                curveness: 0
+            },
+            effect: {
+                show: true,
+                period: 4,
+                trailLength: 0.1,
+                symbol: 'arrow',
+                symbolSize: 6,
+                loop: true
+            }
         }
     ]
-    };
+    });
 
     let inter_data_options = {
         tooltip: {
@@ -558,16 +654,14 @@
             }
         ]
     };
-
-
 </script>
 
 <main class="dashboard-container">
     <div class="card info" id="time">
-        <p>{now.toLocaleString('en-GB',{timeZone:'Europe/London', }).substring(0,17)}</p>
+        <h3>{now.toLocaleString('en-GB',{timeZone:'Europe/London', }).substring(0,17)}</h3>
     </div>
     <div class="card info" id="generation">
-        <p>Generation: {total_generation_data.toFixed(2)} GW + Imports/Exports: {(total_importexport/1000).toFixed(2)} GW = {(total_generation_data + total_importexport/1000).toFixed(2)} GW</p>
+        <p><strong>Generation:</strong> {total_generation_data.toFixed(2)} GW + <strong>Imports/Exports:</strong> {(total_importexport).toFixed(2)} GW = {(total_generation_data + total_importexport).toFixed(2)} GW</p>
     </div>
     <div class="card chart" id="generation-pie">
         <h3>Generation Breakdown</h3>
@@ -608,6 +702,7 @@
 </main>
 
 <style>
+
 .dashboard-container {
   margin: 1.5rem auto;
   max-width: 1600px;
