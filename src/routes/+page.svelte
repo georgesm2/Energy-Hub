@@ -314,7 +314,7 @@
         yAxis: {
             type: "value",
         },
-        series: raw_series_data.filter(item => item.data.every(item => item[1] !== 0))
+        series: raw_series_data.filter(series => series.data.some(item => item[1] !== 0))
     };  
 
     const raw_pie_data = [
