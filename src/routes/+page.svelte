@@ -328,6 +328,11 @@
         { value: solar_data[solar_data.length - 1][1], name: 'Solar' },
         { value: total_wind_data[total_wind_data.length - 1][1], name: 'Wind' },
     ]
+    const raw_type_data = [
+        { value: coal_data[coal_data.length - 1][1] + oil_data[oil_data.length - 1][1] + gas_data[gas_data.length - 1][1], name: 'Fossil fuels', itemStyle: {color: '#ff4848'}},
+        { value: solar_data[solar_data.length - 1][1] + hydro_data[hydro_data.length - 1][1] + total_wind_data[total_wind_data.length - 1][1], name: 'Renewable', itemStyle: {color: '#74ff8b'}},
+        { value: other_data[other_data.length - 1][1] + biomass_data[biomass_data.length - 1][1] + nuclear_data[nuclear_data.length - 1][1], name: 'Other', itemStyle: {color: '#c44dff'}}
+    ]
     let gen_pie_options = {
         graphic : [
             {
@@ -353,9 +358,9 @@
         },
         series: [
             {
-                name: 'Access From',
+                name: 'Individual Generation',
                 type: 'pie',
-                radius: ['40%', '70%'],
+                radius: ['45%', '80%'],
                 avoidLabelOverlap: false,
                 itemStyle: {
                     borderRadius: 10,
@@ -374,6 +379,29 @@
                     show: false
                 },
                 data: raw_pie_data.filter(item => item.value !== 0)
+            },
+            {
+                name: 'Renewable vs non-renewable',
+                type: 'pie',
+                radius: ['34%', '44%'],
+                avoidLabelOverlap: false,
+                itemStyle: {
+                    borderRadius: 10,
+                    borderColor: '#fff',
+                    borderWidth: 2
+                },
+                label: {
+                    show: false,
+                },
+                emphasis: {
+                        label: {
+                        show: false
+                    }
+                },
+                labelLine: {
+                    show: false
+                },
+                data: raw_type_data.filter(item => item.value !== 0)
             }
         ]
     }
