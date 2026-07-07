@@ -10,6 +10,7 @@ END_DATE = datetime.utcnow()
 
 DB_NAME = os.environ.get("D1_DB_NAME", "energy_db")
 
+DOWNSAMPLE_DAY_CUTOFF = pd.Timestamp.now('UTC').tz_localize(None) - pd.Timedelta(days=1)
 DOWNSAMPLE_MONTH_CUTOFF = pd.Timestamp.now('UTC').tz_localize(None) - pd.Timedelta(days=30)
 DOWNSAMPLE_YEAR_CUTOFF = pd.Timestamp.now('UTC').tz_localize(None) - pd.Timedelta(days=365)
 
@@ -164,8 +165,10 @@ def process_data(df, config):
     # separate data into modern full granularity vs month old granular vs year old granularity
     df["timestamp"] = pd.to_datetime(df["timestamp"]).dt.tz_localize(None)
     deep_data = df[df["timestamp"] < DOWNSAMPLE_YEAR_CUTOFF].copy()
-    mid_data = df[(df["timestamp"] >= DOWNSAMPLE_YEAR_CUTOFF) & (df["timestamp"] < DOWNSAMPLE_MONTH_CUTOFF)].copy()
-    modern_data = df[df["timestamp"] >= DOWNSAMPLE_MONTH_CUTOFF].copy()
+    year_data = df[(df["timestamp"] >= DOWNSAMPLE_YEAR_CUTOFF) & (df["timestamp"] < DOWNSAMPLE_MONTH_CUTOFF)].copy()
+    month_data = df[(df["timestamp"] >= DOWNSAMPLE_MONTH_CUTOFF) & (df["timestamp"] < DOWNSAMPLE_DAY_CUTOFF)].copy()
+    day_data = df[df["timestamp"] >= DOWNSAMPLE_DAY_CUTOFF].copy()
+
 
     processed_blocks = []
 
@@ -174,15 +177,21 @@ def process_data(df, config):
         deep_data = deep_data.groupby(["timestamp", "category"])["value"].mean().reset_index()
         processed_blocks.append(deep_data)
 
-    if not mid_data.empty:
-        mid_data["timestamp"] = mid_data["timestamp"].dt.floor("6h")
-        mid_data = mid_data.groupby(["timestamp", "category"])["value"].mean().reset_index()
-        processed_blocks.append(mid_data)
+    if not year_data.empty:
+        year_data["timestamp"] = year_data["timestamp"].dt.floor("6h")
+        year_data = year_data.groupby(["timestamp", "category"])["value"].mean().reset_index()
+        processed_blocks.append(year_data)
 
-    if not modern_data.empty:
-        modern_data["timestamp"] = modern_data["timestamp"].dt.floor("30min")
-        modern_data = modern_data.groupby(["timestamp", "category"])["value"].mean().reset_index()
-        processed_blocks.append(modern_data)
+    if not month_data.empty:
+        month_data["timestamp"] = month_data["timestamp"].dt.floor("1h")
+        month_data = month_data.groupby(["timestamp", "category"])["value"].mean().reset_index()
+        processed_blocks.append(month_data)
+
+    if not day_data.empty:
+        day_data["timestamp"] = day_data["timestamp"].dt.floor("30min")
+        day_data = day_data.groupby(["timestamp", "category"])["value"].mean().reset_index()
+        processed_blocks.append(day_data)
+
 
     df = pd.concat(processed_blocks, ignore_index=True)
 

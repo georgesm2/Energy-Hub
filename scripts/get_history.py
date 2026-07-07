@@ -5,9 +5,10 @@ import pandas as pd
 import time
 from datetime import datetime, timedelta, UTC
 
-START_DATE = datetime(2026, 7, 4, 12, 0, 0)
+START_DATE = datetime(2026, 1, 1, 0, 0, 0)
 END_DATE = datetime.utcnow()
 
+DOWNSAMPLE_DAY_CUTOFF = pd.Timestamp.now('UTC').tz_localize(None) - pd.Timedelta(days=1)
 DOWNSAMPLE_MONTH_CUTOFF = pd.Timestamp.now('UTC').tz_localize(None) - pd.Timedelta(days=30)
 DOWNSAMPLE_YEAR_CUTOFF = pd.Timestamp.now('UTC').tz_localize(None) - pd.Timedelta(days=365)
 
@@ -15,51 +16,51 @@ DOWNSAMPLE_YEAR_CUTOFF = pd.Timestamp.now('UTC').tz_localize(None) - pd.Timedelt
 # all energy prices are converted to £/kWh
 # all generation is converted to MW
 API_CONFIGS = {
-    # "market_price": {
-    #     "url": "https://data.elexon.co.uk/bmrs/api/v1/balancing/pricing/market-index",
-    #     "days_per_request": 7,
-    #     "needs_unpacking": True,
-    #     "json_data_key": "data",
-    #     "columns_to_keep": ["startTime", "price"],
-    #     "column_rename_map": {"startTime": "timestamp", "price": "value"},
-    #     "category_label": "market_price",
-    #     "conversion": 0.001,
-    #     "params_in_url": False,
-    #     "param_builder": lambda start, end: {
-    #         "from": start.strftime("%Y-%m-%dT%H:%MZ"),
-    #         "to": end.strftime("%Y-%m-%dT%H:%MZ"),
-    #         "dataProviders": "APXMIDP"
-    #     }    
-    # },
-    # "octopus_agile": {
-    #     "url": "https://api.octopus.energy/v1/products/AGILE-24-10-01/electricity-tariffs/E-1R-AGILE-24-10-01-A/standard-unit-rates/",
-    #     "days_per_request": 2,
-    #     "needs_unpacking": True,
-    #     "json_data_key": "results",
-    #     "columns_to_keep": ["valid_from", "value_inc_vat"],
-    #     "column_rename_map": {"valid_from": "timestamp", "value_inc_vat": "value"},
-    #     "category_label": "octopus_agile",
-    #     "conversion": 0.01,
-    #     "params_in_url": False,
-    #     "param_builder": lambda start, end: {
-    #         "period_from": start.strftime("%Y-%m-%dT%H:%MZ"),
-    #         "period_to": end.strftime("%Y-%m-%dT%H:%MZ"),
-    #     }
-    # },
-    # "generation": {
-    #     "url": "https://data.elexon.co.uk/bmrs/api/v1/datasets/FUELINST/stream",
-    #     "days_per_request": 1,
-    #     "needs_unpacking": False,
-    #     "index_column": "pub",
-    #     "columns_to_keep": ["publishTime", "fuelType", "generation"],
-    #     "column_rename_map": {"publishTime": "timestamp", "fuelType": "category", "generation": "value"},
-    #     "record_path": "data",
-    #     "params_in_url": False,
-    #     "param_builder": lambda start, end: {
-    #         "publishDateTimeFrom": start.strftime("%Y-%m-%dT%H:%MZ"),
-    #         "publishDateTimeTo": end.strftime("%Y-%m-%dT%H:%MZ"),
-    #     }
-    # },
+    "market_price": {
+        "url": "https://data.elexon.co.uk/bmrs/api/v1/balancing/pricing/market-index",
+        "days_per_request": 7,
+        "needs_unpacking": True,
+        "json_data_key": "data",
+        "columns_to_keep": ["startTime", "price"],
+        "column_rename_map": {"startTime": "timestamp", "price": "value"},
+        "category_label": "market_price",
+        "conversion": 0.001,
+        "params_in_url": False,
+        "param_builder": lambda start, end: {
+            "from": start.strftime("%Y-%m-%dT%H:%MZ"),
+            "to": end.strftime("%Y-%m-%dT%H:%MZ"),
+            "dataProviders": "APXMIDP"
+        }    
+    },
+    "octopus_agile": {
+        "url": "https://api.octopus.energy/v1/products/AGILE-24-10-01/electricity-tariffs/E-1R-AGILE-24-10-01-A/standard-unit-rates/",
+        "days_per_request": 2,
+        "needs_unpacking": True,
+        "json_data_key": "results",
+        "columns_to_keep": ["valid_from", "value_inc_vat"],
+        "column_rename_map": {"valid_from": "timestamp", "value_inc_vat": "value"},
+        "category_label": "octopus_agile",
+        "conversion": 0.01,
+        "params_in_url": False,
+        "param_builder": lambda start, end: {
+            "period_from": start.strftime("%Y-%m-%dT%H:%MZ"),
+            "period_to": end.strftime("%Y-%m-%dT%H:%MZ"),
+        }
+    },
+    "generation": {
+        "url": "https://data.elexon.co.uk/bmrs/api/v1/datasets/FUELINST/stream",
+        "days_per_request": 1,
+        "needs_unpacking": False,
+        "index_column": "pub",
+        "columns_to_keep": ["publishTime", "fuelType", "generation"],
+        "column_rename_map": {"publishTime": "timestamp", "fuelType": "category", "generation": "value"},
+        "record_path": "data",
+        "params_in_url": False,
+        "param_builder": lambda start, end: {
+            "publishDateTimeFrom": start.strftime("%Y-%m-%dT%H:%MZ"),
+            "publishDateTimeTo": end.strftime("%Y-%m-%dT%H:%MZ"),
+        }
+    },
     "solar": {
         "url": "https://api.pvlive.uk/pvlive/api/v4/gsp/0",
         "days_per_request": 2,
@@ -76,20 +77,20 @@ API_CONFIGS = {
             "end": end.strftime("%Y-%m-%dT%H:%MZ"),
         }
     },
-    # "carbon_intensity": {
-    #     "url": "https://api.carbonintensity.org.uk/intensity/{from}/{to}",
-    #     "days_per_request": 4,
-    #     "needs_unpacking": True,
-    #     "json_data_key": "data",
-    #     "columns_to_keep": ["to", "intensity.actual"],
-    #     "column_rename_map": {"to": "timestamp", "intensity.actual": "value"},
-    #     "category_label": "carbon_intensity",
-    #     "params_in_url": True,
-    #     "param_builder": lambda start, end: {
-    #         "from": start.strftime("%Y-%m-%dT%H:%MZ"),
-    #         "to": end.strftime("%Y-%m-%dT%H:%MZ")
-    #     }
-    # }
+    "carbon_intensity": {
+        "url": "https://api.carbonintensity.org.uk/intensity/{from}/{to}",
+        "days_per_request": 4,
+        "needs_unpacking": True,
+        "json_data_key": "data",
+        "columns_to_keep": ["to", "intensity.actual"],
+        "column_rename_map": {"to": "timestamp", "intensity.actual": "value"},
+        "category_label": "carbon_intensity",
+        "params_in_url": True,
+        "param_builder": lambda start, end: {
+            "from": start.strftime("%Y-%m-%dT%H:%MZ"),
+            "to": end.strftime("%Y-%m-%dT%H:%MZ")
+        }
+    }
 }
 
 def fetch_historical_batches(config):
@@ -161,8 +162,10 @@ def process_data(df, config):
     # separate data into modern full granularity vs month old granular vs year old granularity
     df["timestamp"] = pd.to_datetime(df["timestamp"]).dt.tz_localize(None)
     deep_data = df[df["timestamp"] < DOWNSAMPLE_YEAR_CUTOFF].copy()
-    mid_data = df[(df["timestamp"] >= DOWNSAMPLE_YEAR_CUTOFF) & (df["timestamp"] < DOWNSAMPLE_MONTH_CUTOFF)].copy()
-    modern_data = df[df["timestamp"] >= DOWNSAMPLE_MONTH_CUTOFF].copy()
+    year_data = df[(df["timestamp"] >= DOWNSAMPLE_YEAR_CUTOFF) & (df["timestamp"] < DOWNSAMPLE_MONTH_CUTOFF)].copy()
+    month_data = df[(df["timestamp"] >= DOWNSAMPLE_MONTH_CUTOFF) & (df["timestamp"] < DOWNSAMPLE_DAY_CUTOFF)].copy()
+    day_data = df[df["timestamp"] >= DOWNSAMPLE_DAY_CUTOFF].copy()
+
 
     processed_blocks = []
 
@@ -171,15 +174,21 @@ def process_data(df, config):
         deep_data = deep_data.groupby(["timestamp", "category"])["value"].mean().reset_index()
         processed_blocks.append(deep_data)
 
-    if not mid_data.empty:
-        mid_data["timestamp"] = mid_data["timestamp"].dt.floor("6h")
-        mid_data = mid_data.groupby(["timestamp", "category"])["value"].mean().reset_index()
-        processed_blocks.append(mid_data)
+    if not year_data.empty:
+        year_data["timestamp"] = year_data["timestamp"].dt.floor("6h")
+        year_data = year_data.groupby(["timestamp", "category"])["value"].mean().reset_index()
+        processed_blocks.append(year_data)
 
-    if not modern_data.empty:
-        modern_data["timestamp"] = modern_data["timestamp"].dt.floor("30min")
-        modern_data = modern_data.groupby(["timestamp", "category"])["value"].mean().reset_index()
-        processed_blocks.append(modern_data)
+    if not month_data.empty:
+        month_data["timestamp"] = month_data["timestamp"].dt.floor("1h")
+        month_data = month_data.groupby(["timestamp", "category"])["value"].mean().reset_index()
+        processed_blocks.append(month_data)
+
+    if not day_data.empty:
+        day_data["timestamp"] = day_data["timestamp"].dt.floor("30min")
+        day_data = day_data.groupby(["timestamp", "category"])["value"].mean().reset_index()
+        processed_blocks.append(day_data)
+
 
     df = pd.concat(processed_blocks, ignore_index=True)
 
