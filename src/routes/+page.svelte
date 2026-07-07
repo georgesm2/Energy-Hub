@@ -45,6 +45,11 @@
 
     const filterByCategory = (cat, conv=1) => data?.metrics?.filter(a => a.category === cat).map(a => [utcToUK(a.timestamp), a.value / conv]);
 
+    const europeJSON = JSON.parse(europeGeoJSON);
+    registerMap('europe', europeJSON);
+
+
+    // PRICE DATA
     let market_price_data = filterByCategory('market_price');
     let agile_price_data = filterByCategory('octopus_agile');
     // make sure that the two arrays are the same length as octopus agile is often available earlier than market price
@@ -62,6 +67,56 @@
     const baseline_cap = past_price_cap_data[past_price_cap_data.length - 1];
     baseline_cap[0] = start_timestamp;
     price_cap_data = [baseline_cap, ...current_price_cap_data];
+
+    // INTERCONNECTOR DATA
+    let IEgreenlink = filterByCategory("INTGRNL", MW_TO_GW);
+    let IEeastwest = filterByCategory("INTEW", MW_TO_GW);
+    let IEmoyle = filterByCategory("INTIRL", MW_TO_GW);
+    let IEinter = sumMultipleArrays(IEgreenlink, IEeastwest, IEmoyle)
+    let IEnow = IEinter[IEinter.length - 1][1];
+    let FRIFA = filterByCategory("INTFR", MW_TO_GW)
+    let FRIFAtwo = filterByCategory("INTIFA2", MW_TO_GW)
+    let FReleclink = filterByCategory("INTELEC", MW_TO_GW)
+    let FRinter = sumMultipleArrays(FRIFA, FRIFAtwo, FReleclink)
+    let FRnow = FRinter[FRinter.length - 1][1];
+    let NOnsl = filterByCategory("INTNSL", MW_TO_GW)
+    let NOinter = NOnsl
+    let NOnow = NOinter[NOinter.length - 1][1];
+    let DNviking = filterByCategory("INTVKL", MW_TO_GW)
+    let DNinter = DNviking
+    let DNnow = DNinter[DNinter.length - 1][1];
+    let NLbritned = filterByCategory("INTNED", MW_TO_GW)
+    let NLinter = NLbritned
+    let NLnow = NLinter[NLinter.length - 1][1];
+    let BEnemo = filterByCategory("INTNEM", MW_TO_GW);
+    let BEinter = BEnemo
+    let BEnow = BEinter[BEinter.length - 1][1];
+    let total_importexport = sumMultipleArrays(IEinter, FRinter, NOinter, DNinter, NLinter, BEinter);
+    let total_importexportNow = total_importexport[total_importexport.length - 1][1];
+    const dashArray = [10, 1];
+
+    // GENERATION DATA
+    let biomass_data = filterByCategory('BIOMASS', MW_TO_GW);
+    let ccgt_data = filterByCategory('CCGT', MW_TO_GW);
+    let ocgt_data = filterByCategory('OCGT', MW_TO_GW);
+    let gas_data = Object.entries([...ccgt_data,...ocgt_data].reduce((a, [timestamp, value]) => {
+        a[timestamp] = (a[timestamp] || 0) + value;
+        return a;}, {})
+        ).map(([timestamp, value]) => [timestamp, value]);
+    let coal_data = filterByCategory('COAL', MW_TO_GW);
+    let oil_data = filterByCategory('OIL', MW_TO_GW);
+    let hydro_data = filterByCategory('NPSHYD', MW_TO_GW);
+    let nuclear_data = filterByCategory('NUCLEAR', MW_TO_GW);
+    let solar_data = filterByCategory('SOLAR', MW_TO_GW);
+    let total_wind_data = filterByCategory('WIND', MW_TO_GW);
+    let other_data = filterByCategory('OTHER', MW_TO_GW);
+    let total_generation_data = biomass_data[biomass_data.length-1][1] + gas_data[gas_data.length-1][1] + coal_data[coal_data.length-1][1] + 
+    oil_data[oil_data.length-1][1] + hydro_data[hydro_data.length-1][1] + nuclear_data[nuclear_data.length-1][1] + solar_data[solar_data.length-1][1] + 
+    total_wind_data[total_wind_data.length-1][1] + other_data[other_data.length-1][1];
+
+    // CARBON INTENSITY
+    let carbon_intensity_data = filterByCategory('carbon_intensity');
+
     let price_chart_options = {
         tooltip: {
             trigger: "axis",
@@ -131,23 +186,89 @@
         ]
     };
 
-    let biomass_data = filterByCategory('BIOMASS', MW_TO_GW);
-    let ccgt_data = filterByCategory('CCGT', MW_TO_GW);
-    let ocgt_data = filterByCategory('OCGT', MW_TO_GW);
-    let gas_data = Object.entries([...ccgt_data,...ocgt_data].reduce((a, [timestamp, value]) => {
-        a[timestamp] = (a[timestamp] || 0) + value;
-        return a;}, {})
-        ).map(([timestamp, value]) => [timestamp, value]);
-    let coal_data = filterByCategory('COAL', MW_TO_GW);
-    let oil_data = filterByCategory('OIL', MW_TO_GW);
-    let hydro_data = filterByCategory('NPSHYD', MW_TO_GW);
-    let nuclear_data = filterByCategory('NUCLEAR', MW_TO_GW);
-    let solar_data = filterByCategory('SOLAR', MW_TO_GW);
-    let total_wind_data = filterByCategory('WIND', MW_TO_GW);
-    let other_data = filterByCategory('OTHER', MW_TO_GW);
-    let total_generation_data = biomass_data[biomass_data.length-1][1] + gas_data[gas_data.length-1][1] + coal_data[coal_data.length-1][1] + 
-    oil_data[oil_data.length-1][1] + hydro_data[hydro_data.length-1][1] + nuclear_data[nuclear_data.length-1][1] + solar_data[solar_data.length-1][1] + 
-    total_wind_data[total_wind_data.length-1][1] + other_data[other_data.length-1][1];
+    const raw_series_data = [
+        {
+            name: "Other",
+            data: other_data,
+            type: "line",
+            symbol: 'none',
+            smooth: true,
+            stack: 'Total',
+            areaStyle: {}
+        },
+        {
+            name: "Coal",
+            data: coal_data,
+            type: "line",
+            symbol: 'none',
+            smooth: true,
+            stack: 'Total',
+            areaStyle: {}
+        },
+        {
+            name: "Oil",
+            data: oil_data,
+            type: "line",
+            symbol: 'none',
+            smooth: true,
+            stack: 'Total',
+            areaStyle: {}
+        },
+        {
+            name: "Biomass",
+            data: biomass_data,
+            type: "line",
+            symbol: 'none',
+            smooth: true,
+            stack: 'Total',
+            areaStyle: {}
+        },
+        {
+            name: "Nuclear",
+            data: nuclear_data,
+            type: "line",
+            symbol: 'none',
+            smooth: true,
+            stack: 'Total',
+            areaStyle: {}
+        },
+        {
+            name: "Gas",
+            data: gas_data,
+            type: "line",
+            symbol: 'none',
+            smooth: true,
+            stack: 'Total',
+            areaStyle: {}
+        },
+        {
+            name: "Hydro",
+            data: hydro_data,
+            type: "line",
+            symbol: 'none',
+            smooth: true,
+            stack: 'Total',
+            areaStyle: {}
+        },
+        {
+            name: "Solar",
+            data: solar_data,
+            type: "line",
+            smooth: true,
+            symbol: 'none',
+            stack: 'Total',
+            areaStyle: {}
+        },
+        {
+            name: "Wind",
+            data: total_wind_data,
+            type: "line",
+            symbol: 'none',
+            smooth: true,
+            stack: 'Total',
+            areaStyle: {}
+        }
+    ]
     let gen_chart_options = {
         tooltip: {
             trigger: "axis",
@@ -193,91 +314,20 @@
         yAxis: {
             type: "value",
         },
-        series: [
-            {
-                name: "Other",
-                data: other_data,
-                type: "line",
-                symbol: 'none',
-                smooth: true,
-                stack: 'Total',
-                areaStyle: {}
-            },
-            {
-                name: "Coal",
-                data: coal_data,
-                type: "line",
-                symbol: 'none',
-                smooth: true,
-                stack: 'Total',
-                areaStyle: {}
-            },
-            {
-                name: "Oil",
-                data: oil_data,
-                type: "line",
-                symbol: 'none',
-                smooth: true,
-                stack: 'Total',
-                areaStyle: {}
-            },
-            {
-                name: "Biomass",
-                data: biomass_data,
-                type: "line",
-                symbol: 'none',
-                smooth: true,
-                stack: 'Total',
-                areaStyle: {}
-            },
-            {
-                name: "Nuclear",
-                data: nuclear_data,
-                type: "line",
-                symbol: 'none',
-                smooth: true,
-                stack: 'Total',
-                areaStyle: {}
-            },
-            {
-                name: "Gas",
-                data: gas_data,
-                type: "line",
-                symbol: 'none',
-                smooth: true,
-                stack: 'Total',
-                areaStyle: {}
-            },
-            {
-                name: "Hydro",
-                data: hydro_data,
-                type: "line",
-                symbol: 'none',
-                smooth: true,
-                stack: 'Total',
-                areaStyle: {}
-            },
-            {
-                name: "Solar",
-                data: solar_data,
-                type: "line",
-                smooth: true,
-                symbol: 'none',
-                stack: 'Total',
-                areaStyle: {}
-            },
-            {
-                name: "Wind",
-                data: total_wind_data,
-                type: "line",
-                symbol: 'none',
-                smooth: true,
-                stack: 'Total',
-                areaStyle: {}
-            }
-        ]
+        series: raw_series_data.filter(item => item.data.every(item => item[1] !== 0))
     };  
 
+    const raw_pie_data = [
+        { value: other_data[other_data.length - 1][1], name: 'Other' },
+        { value: coal_data[coal_data.length - 1][1], name: 'Coal' },
+        { value: oil_data[oil_data.length - 1][1], name: 'Oil' },
+        { value: biomass_data[biomass_data.length - 1][1], name: 'Biomass' },
+        { value: nuclear_data[nuclear_data.length - 1][1], name: 'Nuclear' },
+        { value: gas_data[gas_data.length - 1][1], name: 'Gas' },
+        { value: hydro_data[hydro_data.length - 1][1], name: 'Hydro'},    
+        { value: solar_data[solar_data.length - 1][1], name: 'Solar' },
+        { value: total_wind_data[total_wind_data.length - 1][1], name: 'Wind' },
+    ]
     let gen_pie_options = {
         graphic : [
             {
@@ -323,48 +373,10 @@
                 labelLine: {
                     show: false
                 },
-                data: [
-                    { value: other_data[other_data.length - 1][1], name: 'Other' },
-                    { value: coal_data[coal_data.length - 1][1], name: 'Coal' },
-                    { value: oil_data[oil_data.length - 1][1], name: 'Oil' },
-                    { value: biomass_data[biomass_data.length - 1][1], name: 'Biomass' },
-                    { value: nuclear_data[nuclear_data.length - 1][1], name: 'Nuclear' },
-                    { value: gas_data[gas_data.length - 1][1], name: 'Gas' },
-                    { value: hydro_data[hydro_data.length - 1][1], name: 'Hydro'},    
-                    { value: solar_data[solar_data.length - 1][1], name: 'Solar' },
-                    { value: total_wind_data[total_wind_data.length - 1][1], name: 'Wind' },
-                ]
+                data: raw_pie_data.filter(item => item.value !== 0)
             }
         ]
     }
-
-    const europeJSON = JSON.parse(europeGeoJSON);
-    registerMap('europe', europeJSON);
-
-    let IEgreenlink = filterByCategory("INTGRNL", MW_TO_GW);
-    let IEeastwest = filterByCategory("INTEW", MW_TO_GW);
-    let IEmoyle = filterByCategory("INTIRL", MW_TO_GW);
-    let IEinter = sumMultipleArrays(IEgreenlink, IEeastwest, IEmoyle)
-    let IEnow = IEinter[IEinter.length - 1][1];
-    let FRIFA = filterByCategory("INTFR", MW_TO_GW)
-    let FRIFAtwo = filterByCategory("INTIFA2", MW_TO_GW)
-    let FReleclink = filterByCategory("INTELEC", MW_TO_GW)
-    let FRinter = sumMultipleArrays(FRIFA, FRIFAtwo, FReleclink)
-    let FRnow = FRinter[FRinter.length - 1][1];
-    let NOnsl = filterByCategory("INTNSL", MW_TO_GW)
-    let NOinter = NOnsl
-    let NOnow = NOinter[NOinter.length - 1][1];
-    let DNviking = filterByCategory("INTVKL", MW_TO_GW)
-    let DNinter = DNviking
-    let DNnow = DNinter[DNinter.length - 1][1];
-    let NLbritned = filterByCategory("INTNED", MW_TO_GW)
-    let NLinter = NLbritned
-    let NLnow = NLinter[NLinter.length - 1][1];
-    let BEnemo = filterByCategory("INTNEM", MW_TO_GW);
-    let BEinter = BEnemo
-    let BEnow = BEinter[BEinter.length - 1][1];
-    let total_importexport = IEnow + FRnow + NOnow + DNnow + NLnow + BEnow;
-    const dashArray = [10, 1];
 
     let inter_map_options = $state({
     geo: {
@@ -602,7 +614,6 @@
         ]
     }; 
 
-    let carbon_intensity_data = filterByCategory('carbon_intensity');
     let carbon_intensity_options = {
         tooltip: {
             trigger: "axis",
@@ -661,7 +672,7 @@
         <h3>{now.toLocaleString('en-GB',{timeZone:'Europe/London', }).substring(0,17)}</h3>
     </div>
     <div class="card info" id="generation">
-        <p><strong>Generation:</strong> {total_generation_data.toFixed(2)} GW + <strong>Imports/Exports:</strong> {(total_importexport).toFixed(2)} GW = {(total_generation_data + total_importexport).toFixed(2)} GW</p>
+        <p><strong>Generation:</strong> {total_generation_data.toFixed(2)} GW + <strong>Imports/Exports:</strong> {(total_importexportNow).toFixed(2)} GW = {(total_generation_data + total_importexportNow).toFixed(2)} GW</p>
     </div>
     <div class="card chart" id="generation-pie">
         <h3>Generation Breakdown</h3>
