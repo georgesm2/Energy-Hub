@@ -669,7 +669,7 @@
     ];
     let cur = $state(tabs[0]);
     let DynamicComponent = $derived(cur.comp);
-    let currentOptions = $derived(cur.options)
+    let currentOptions = $derived(cur.options);
 </script>
 
 <div class="content">
