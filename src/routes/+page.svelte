@@ -186,89 +186,58 @@
         ]
     };
 
-    const raw_series_data = [
+    const raw_gen_data = [
         {
             name: "Other",
             data: other_data,
-            type: "line",
-            symbol: 'none',
-            smooth: true,
-            stack: 'Total',
-            areaStyle: {}
         },
         {
             name: "Coal",
             data: coal_data,
-            type: "line",
-            symbol: 'none',
-            smooth: true,
-            stack: 'Total',
-            areaStyle: {}
         },
         {
             name: "Oil",
             data: oil_data,
-            type: "line",
-            symbol: 'none',
-            smooth: true,
-            stack: 'Total',
-            areaStyle: {}
         },
         {
             name: "Biomass",
             data: biomass_data,
-            type: "line",
-            symbol: 'none',
-            smooth: true,
-            stack: 'Total',
-            areaStyle: {}
         },
         {
             name: "Nuclear",
             data: nuclear_data,
-            type: "line",
-            symbol: 'none',
-            smooth: true,
-            stack: 'Total',
-            areaStyle: {}
         },
         {
             name: "Gas",
             data: gas_data,
-            type: "line",
-            symbol: 'none',
-            smooth: true,
-            stack: 'Total',
-            areaStyle: {}
         },
         {
             name: "Hydro",
             data: hydro_data,
-            type: "line",
-            symbol: 'none',
-            smooth: true,
-            stack: 'Total',
-            areaStyle: {}
         },
         {
             name: "Solar",
             data: solar_data,
-            type: "line",
-            smooth: true,
-            symbol: 'none',
-            stack: 'Total',
-            areaStyle: {}
         },
         {
             name: "Wind",
             data: total_wind_data,
-            type: "line",
+        }
+    ]
+    const masterTimeline = [...new Set(raw_gen_data.flatMap(s => s.data.map(d => d[0])))].sort();
+    const gen_data_series_processed = raw_gen_data.map(series => {
+        const dataMap = new Map(series.data);
+        return {
+            ...series,
+            data: masterTimeline.map(t => [t, dataMap.get(t) ?? 0]),
+            type: 'line',
             symbol: 'none',
             smooth: true,
             stack: 'Total',
+            connectNulls: true,
             areaStyle: {}
-        }
-    ]
+        };
+    });
     let gen_chart_options = {
         tooltip: {
             trigger: "axis",
@@ -314,7 +283,7 @@
         yAxis: {
             type: "value",
         },
-        series: raw_series_data.filter(series => series.data.some(item => item[1] !== 0))
+        series: gen_data_series_processed.filter(series => series.data.some(item => item[1] !== 0))
     };  
 
     const raw_pie_data = [
@@ -752,14 +721,6 @@
   grid-template-columns: repeat(8, minmax(0, 200px));
 }
 
-.card {
-  background-color: #fff;
-  border-radius: 10px;
-  min-width: 0;
-  box-sizing: border-box;
-  text-align: center;
-}
-
 .info {
     display: flex;
     justify-content: center;
@@ -798,18 +759,7 @@
 #interconnector-data-chart {
   grid-column: 6 / -1;
 }
-.chart {
-  min-width: 0;
-  box-sizing: border-box;
-  padding: 0rem;
-  padding-top: 0;
-}
 
-.chart-area {
-  height: 26rem;
-  width: 100%;
-  overflow: hidden;
-}
 
 @media (max-width: 1300px) {
   #interconnector-map {
