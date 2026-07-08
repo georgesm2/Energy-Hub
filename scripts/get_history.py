@@ -5,7 +5,7 @@ import pandas as pd
 import time
 from datetime import datetime, timedelta, UTC
 
-START_DATE = datetime(2026, 1, 1, 0, 0, 0)
+START_DATE = datetime(2026, 7, 7, 9, 0, 0)
 END_DATE = datetime.utcnow()
 
 DOWNSAMPLE_DAY_CUTOFF = pd.Timestamp.now('UTC').tz_localize(None) - pd.Timedelta(days=1)

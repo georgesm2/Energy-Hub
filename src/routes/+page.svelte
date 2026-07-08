@@ -6,6 +6,9 @@
     import { GraphicComponent, ToolboxComponent, DataZoomComponent, GridComponent, GeoComponent, VisualMapComponent, TooltipComponent, LegendComponent } from 'echarts/components';
     import { CanvasRenderer } from 'echarts/renderers';
     import europeGeoJSON from '$lib/assets/europe.geojson?raw';
+    import Price from './Price.svelte'
+    import CarbonIntensity from './CarbonIntensity.svelte'
+    import Interconnectors from './Interconnectors.svelte'
     
     // now with tree-shaking
     use([LineChart, LinesChart, PieChart, MapChart, ToolboxComponent, DataZoomComponent, GraphicComponent, GridComponent, CanvasRenderer, GeoComponent, VisualMapComponent, TooltipComponent, LegendComponent])
@@ -47,7 +50,6 @@
 
     const europeJSON = JSON.parse(europeGeoJSON);
     registerMap('europe', europeJSON);
-
 
     // PRICE DATA
     let market_price_data = filterByCategory('market_price');
@@ -298,9 +300,9 @@
         { value: total_wind_data[total_wind_data.length - 1][1], name: 'Wind' },
     ]
     const raw_type_data = [
+        { value: other_data[other_data.length - 1][1] + biomass_data[biomass_data.length - 1][1] + nuclear_data[nuclear_data.length - 1][1], name: 'Other', itemStyle: {color: '#c44dff'}},
         { value: coal_data[coal_data.length - 1][1] + oil_data[oil_data.length - 1][1] + gas_data[gas_data.length - 1][1], name: 'Fossil fuels', itemStyle: {color: '#ff4848'}},
         { value: solar_data[solar_data.length - 1][1] + hydro_data[hydro_data.length - 1][1] + total_wind_data[total_wind_data.length - 1][1], name: 'Renewable', itemStyle: {color: '#74ff8b'}},
-        { value: other_data[other_data.length - 1][1] + biomass_data[biomass_data.length - 1][1] + nuclear_data[nuclear_data.length - 1][1], name: 'Other', itemStyle: {color: '#c44dff'}}
     ]
     let gen_pie_options = {
         graphic : [
@@ -640,9 +642,6 @@
                 end: 100
             }
         ],
-        legend: {
-            data: ["Carbon Intensity"],
-        },
         xAxis: {
             type: "time",
             axisLabel: {
@@ -662,62 +661,108 @@
             }
         ]
     };
+
+    let tabs = [
+        {name: "Price", comp: Price, options: price_chart_options},
+        {name: "Carbon Intensity", comp: CarbonIntensity, options: carbon_intensity_options},
+        {name: "Interconnectors", comp: Interconnectors, options: inter_data_options},
+    ];
+    let cur = $state(tabs[0]);
+    let DynamicComponent = $derived(cur.comp);
+    let currentOptions = $derived(cur.options)
 </script>
 
-<main class="dashboard-container">
-    <div class="card info" id="time">
-        <h3>{now.toLocaleString('en-GB',{timeZone:'Europe/London', }).substring(0,17)}</h3>
-    </div>
-    <div class="card info" id="generation">
-        <p><strong>Generation:</strong> {total_generation_data.toFixed(2)} GW + <strong>Imports/Exports:</strong> {(total_importexportNow).toFixed(2)} GW = {(total_generation_data + total_importexportNow).toFixed(2)} GW</p>
-    </div>
-    <div class="card chart" id="generation-pie">
-        <h3>Generation Breakdown</h3>
-        <div class="chart-area">
-            <Chart {init} options={gen_pie_options} />
+<div class="content">
+    <main class="dashboard-container">
+        <div class="card info" id="time">
+            <h3>{now.toLocaleString('en-GB',{timeZone:'Europe/London', }).substring(0,17)}</h3>
+        </div>
+        <div class="card info" id="generation">
+            <p><strong>Generation:</strong> {total_generation_data.toFixed(2)} GW + <strong>Imports/Exports:</strong> {(total_importexportNow).toFixed(2)} GW = {(total_generation_data + total_importexportNow).toFixed(2)} GW</p>
+        </div>
+        <div class="card chart" id="generation-pie">
+            <h3>Generation Breakdown</h3>
+            <div class="chart-area">
+                <Chart {init} options={gen_pie_options} />
+            </div>
+        </div>
+        <div class="card chart" id="generation-chart">
+            <h3>Generation by Type / GW</h3>
+            <div class="chart-area">
+                <Chart {init} options={gen_chart_options} />
+            </div>
+        </div>
+        <div class="card chart" id="interconnector-map">
+            <h3>Imports / Exports</h3>
+            <div class="chart-area">
+                <Chart {init} options={inter_map_options} />
+            </div>
+        </div>
+    </main>
+    <div class="tab-section">
+        <div class="tabs">
+            {#each tabs as tab}
+                <button class:selected={cur.name === tab.name} onclick={() => (cur=tab)}>
+                    <strong>{tab.name}</strong>
+                </button>
+            {/each}
+        </div>
+        <div class="tab-content">
+            <div id="tab-chart">
+                <DynamicComponent options={currentOptions} />
+            </div>
         </div>
     </div>
-    <div class="card chart" id="generation-chart">
-        <h3>Generation by Type / GW</h3>
-        <div class="chart-area">
-            <Chart {init} options={gen_chart_options} />
-        </div>
-    </div>
-    <div class="card chart" id="interconnector-map">
-        <h3>Imports / Exports</h3>
-        <div class="chart-area">
-            <Chart {init} options={inter_map_options} />
-        </div>
-    </div>
-    <div class="card chart" id="price-chart">
-        <h3>Electricity Price £ / kWh</h3>
-        <div class="chart-area">
-            <Chart {init} options={price_chart_options} />
-        </div>
-    </div>
-    <div class="card chart" id="carbon-intensity-chart">
-        <h3>Carbon Intensity gCO2 / kWh</h3>
-        <div class="chart-area">
-            <Chart {init} options={carbon_intensity_options} />
-        </div>
-    </div>
-    <div class="card chart" id="interconnector-data-chart">
-        <h3>Interconnector Data / GW</h3>
-        <div class="chart-area">
-            <Chart {init} options={inter_data_options} />
-        </div>
-    </div>
-</main>
+</div>
 
 <style>
 
+.content {
+    margin: 1.5rem auto;
+    max-width: 1600px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    font-family: sans-serif;
+}
+
+.tab-section {
+    display: flex;
+    flex-direction: column;
+    .tab-content {
+        border: 1px solid #abc;
+        border-radius: 0 10px 10px 10px;
+        background-color: #fff;
+        padding: 1em;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0,800px))
+    }
+}
+
+.tabs {
+    display: flex;
+}
+
+button {
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    border: 1px solid transparent;
+    margin-bottom: -1px;
+    background-color: #fff;
+    border-bottom-color: #abc;
+    font-size: 1rem;
+}
+
+button.selected {
+    border-top-right-radius: 8px;
+    border-top-left-radius: 8px;
+    border-top-width: 8px;
+    border-color: #abc #abc #fff;
+}
+
 .dashboard-container {
-  margin: 1.5rem auto;
-  max-width: 1600px;
-  align-items: center;
   display: grid;
   gap: 0.5rem;
-  font-family: sans-serif;
   grid-template-columns: repeat(8, minmax(0, 200px));
 }
 
@@ -759,7 +804,6 @@
 #interconnector-data-chart {
   grid-column: 6 / -1;
 }
-
 
 @media (max-width: 1300px) {
   #interconnector-map {
@@ -841,7 +885,10 @@
     .chart-area {
         height: 25rem;
     }
-  
+
+    #tab-chart {
+        grid-column: 1 / -1;
+    }
 }
 
 </style>
