@@ -300,9 +300,9 @@
         { value: total_wind_data[total_wind_data.length - 1][1], name: 'Wind' },
     ]
     const raw_type_data = [
+        { value: other_data[other_data.length - 1][1] + biomass_data[biomass_data.length - 1][1] + nuclear_data[nuclear_data.length - 1][1], name: 'Other', itemStyle: {color: '#c44dff'}},
         { value: coal_data[coal_data.length - 1][1] + oil_data[oil_data.length - 1][1] + gas_data[gas_data.length - 1][1], name: 'Fossil fuels', itemStyle: {color: '#ff4848'}},
         { value: solar_data[solar_data.length - 1][1] + hydro_data[hydro_data.length - 1][1] + total_wind_data[total_wind_data.length - 1][1], name: 'Renewable', itemStyle: {color: '#74ff8b'}},
-        { value: other_data[other_data.length - 1][1] + biomass_data[biomass_data.length - 1][1] + nuclear_data[nuclear_data.length - 1][1], name: 'Other', itemStyle: {color: '#c44dff'}}
     ]
     let gen_pie_options = {
         graphic : [
@@ -665,7 +665,7 @@
     let tabs = [
         {name: "Price", comp: Price, options: price_chart_options},
         {name: "Carbon Intensity", comp: CarbonIntensity, options: carbon_intensity_options},
-        {name: "Interconnectors", comp: Interconnectors, options: inter_data_options}
+        {name: "Interconnectors", comp: Interconnectors, options: inter_data_options},
     ];
     let cur = $state(tabs[0]);
     let DynamicComponent = $derived(cur.comp);

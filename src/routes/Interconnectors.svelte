@@ -14,11 +14,14 @@
 </script>
 
 <div class="card chart" id="carbon-intensity-chart">
-    <h3>Carbon Intensity gCO2 / kWh</h3>
+    <h3>Interconnector Flows / GW</h3>
     <div class="chart-area">
         <Chart {init} options={options} />
     </div>
 </div>
 
 <style>
+    .card {
+        border: 1px #abc solid;
+    }
 </style>

@@ -21,5 +21,7 @@
 </div>
 
 <style>
-    
+    .card {
+        border: 1px #abc solid;
+    }
 </style>
