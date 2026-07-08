@@ -26,6 +26,28 @@ img {
   border-radius: 8px;
 }
 
+.card {
+  background-color: #fff;
+  border-radius: 10px;
+  min-width: 0;
+  box-sizing: border-box;
+  text-align: center;
+   border: 1px #abc solid;
+}
+
+.chart {
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 0rem;
+  padding-top: 0;
+}
+
+.chart-area {
+  height: 26rem;
+  width: 100%;
+  overflow: hidden;
+}
+
 .navbar {
   display: flex;
   gap: 4rem;
@@ -43,6 +65,10 @@ img {
     display: flex;
     gap: 3rem;
   }
+}
+
+@media (max-width: 610px) {
+  .chart-area { height: 25rem; }
 }
 
 @media (max-width: 768px) {

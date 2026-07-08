@@ -21,19 +21,5 @@
 </div>
 
 <style>
-    .card {
-        background-color: #fff;
-        border-radius: 10px;
-        min-width: 0;
-        box-sizing: border-box;
-        text-align: center;
-    }
-    .chart-area {
-        height: 26rem;
-        width: 100%;
-        overflow: hidden;
-    }
-    @media (max-width: 610px) {
-        .chart-area { height: 25rem; }
-    }
+    
 </style>

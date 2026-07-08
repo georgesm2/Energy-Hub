@@ -702,13 +702,15 @@
     <div class="tab-section">
         <div class="tabs">
             {#each tabs as tab}
-                <button class:selected={cur === tab} onclick={() => (cur=tab)}>
-                    {tab.name}
+                <button class:selected={cur.name === tab.name} onclick={() => (cur=tab)}>
+                    <strong>{tab.name}</strong>
                 </button>
             {/each}
         </div>
         <div class="tab-content">
-            <DynamicComponent options={currentOptions} />
+            <div id="tab-chart">
+                <DynamicComponent options={currentOptions} />
+            </div>
         </div>
     </div>
 </div>
@@ -727,39 +729,41 @@
 .tab-section {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-
     .tab-content {
         border: 1px solid #abc;
+        border-radius: 0 10px 10px 10px;
+        background-color: #fff;
+        padding: 1em;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0,800px))
     }
 }
 
 .tabs {
-    gap: 3.0rem;
     display: flex;
+}
 
-    button {
-        cursor: pointer;
-        padding: 0.5rem 1rem;
-        border: 1px solid transparent;
-        margin-bottom: -1px;
-        background-color: #fff;
-        border-bottom-color: #abc;
-    }
+button {
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    border: 1px solid transparent;
+    margin-bottom: -1px;
+    background-color: #fff;
+    border-bottom-color: #abc;
+    font-size: 1rem;
+}
+
+button.selected {
+    border-top-right-radius: 8px;
+    border-top-left-radius: 8px;
+    border-top-width: 8px;
+    border-color: #abc #abc #fff;
 }
 
 .dashboard-container {
   display: grid;
   gap: 0.5rem;
   grid-template-columns: repeat(8, minmax(0, 200px));
-}
-
-.card {
-  background-color: #fff;
-  border-radius: 10px;
-  min-width: 0;
-  box-sizing: border-box;
-  text-align: center;
 }
 
 .info {
@@ -799,18 +803,6 @@
 
 #interconnector-data-chart {
   grid-column: 6 / -1;
-}
-.chart {
-  min-width: 0;
-  box-sizing: border-box;
-  padding: 0rem;
-  padding-top: 0;
-}
-
-.chart-area {
-  height: 26rem;
-  width: 100%;
-  overflow: hidden;
 }
 
 @media (max-width: 1300px) {
@@ -893,7 +885,10 @@
     .chart-area {
         height: 25rem;
     }
-  
+
+    #tab-chart {
+        grid-column: 1 / -1;
+    }
 }
 
 </style>
